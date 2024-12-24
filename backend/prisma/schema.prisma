@@ -1,0 +1,66 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id             String        @id @default(uuid())
+  email          String        @unique
+  password       String
+  // name        String?
+  // googleId    String?       @unique
+  balance        Float         @default(0.0)
+  gamesAsPlayer1 Game[]        @relation("Player1Games")
+  gamesAsPlayer2 Game[]        @relation("Player2Games")
+  history        GameHistory[] @relation("UserGameHistory")
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+}
+
+model Game {
+  id          String        @id @default(uuid())
+  player1     User          @relation("Player1Games", fields: [player1Id], references: [id])
+  player1Id   String
+  player2     User?         @relation("Player2Games", fields: [player2Id], references: [id])
+  player2Id   String?
+  currentTurn String
+  state       Json?
+  status      GameStatus    @default(WAITING)
+  winner      String?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  GameHistory GameHistory[]
+}
+
+model GameHistory {
+  id          String     @id @default(uuid())
+  user        User       @relation("UserGameHistory", fields: [userId], references: [id])
+  userId      String
+  gameId      String
+  game        Game       @relation(fields: [gameId], references: [id])
+  result      GameResult
+  moneyChange Float
+  createdAt   DateTime   @default(now())
+}
+
+enum GameStatus {
+  WAITING
+  IN_PROGRESS
+  COMPLETED
+}
+
+enum GameResult {
+  WIN
+  LOSE
+  DRAW
+}
