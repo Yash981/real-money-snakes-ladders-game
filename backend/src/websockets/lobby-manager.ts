@@ -121,12 +121,28 @@ class LobbyManager {
           moneyChange: 100,
         },
       });
+      await prisma.user.update({
+        where: { id: userId },
+        data: {
+          balance: {
+            increment: 100,
+          },
+        },
+      });
       await prisma.gameHistory.create({
         data: {
           gameId: roomId,
           userId: nextTurn as string,
           result: "LOSE",
           moneyChange: -100,
+        },
+      });
+      await prisma.user.update({
+        where: { id: nextTurn as string },
+        data: {
+          balance: {
+            decrement: 100,
+          },
         },
       });
       return {

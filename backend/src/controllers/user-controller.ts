@@ -4,6 +4,7 @@ import {
   CreateUser,
   DepositMoneyByUserId,
   findUserByEmail,
+  getAllGamesPlayedByUser,
   WithdrawMoneyByUserId,
 } from "../models/user-model";
 import {
@@ -11,6 +12,7 @@ import {
   generateToken,
   hashPassword,
 } from "../services/auth-service";
+import prisma from "../db/client";
 
 export const UserSignUp = async (req: Request, res: Response) => {
   const parsedSignUpData = AuthFormSchema.safeParse(req.body);
@@ -130,3 +132,36 @@ export const WithdrawMoney = async (req: Request, res: Response) => {
     return;
   }
 };
+export const getHistoryOfGamesPlayed = async (req: Request, res: Response) => {
+  if (!req.user?.email) {
+    res.status(400).json({ message: "User email is required" });
+    return;
+  }
+  const getUser = await findUserByEmail(req.user.email);
+  if (!getUser) {
+    res.status(400).json({ message: "User not found" });
+    return;
+  }
+  const TotalGamesPlayed = await getAllGamesPlayedByUser({ id: getUser.id });
+
+  res.status(200).json({
+    message: "History of Games Played",
+    TotalGamesPlayed,
+  })
+
+}
+export const getCurrentBalance = async (req: Request, res: Response) => {
+  if (!req.user?.email) {
+    res.status(400).json({ message: "User email is required" });
+    return;
+  }
+  const getUser = await findUserByEmail(req.user.email);
+  if (!getUser) {
+    res.status(400).json({ message: "User not found" });
+    return;
+  }
+  res.status(200).json({
+    message: "Current Balance",
+    balance: getUser.balance,
+  });
+}

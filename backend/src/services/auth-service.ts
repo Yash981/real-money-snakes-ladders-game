@@ -1,6 +1,5 @@
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
-import prisma from '../db/client';
 import { findUserByEmail } from '../models/user-model';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'Yashwanth14';
