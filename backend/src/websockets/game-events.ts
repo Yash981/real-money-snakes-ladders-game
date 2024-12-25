@@ -1,7 +1,7 @@
 import { WebSocket } from "ws";
 import { ClientMessage, EventTypes } from "./event-types";
 import { lobbyManager } from "./lobby-manager";
-const roomClients = new Map<string, Set<string>>();
+const roomClients = new Map<string, Set<WebSocket>>();
 export const handleClientMessage = async (
   message: ClientMessage,
   clientId: string,
@@ -15,44 +15,64 @@ export const handleClientMessage = async (
       if (!roomClients.has(gameId)) {
         roomClients.set(gameId, new Set());
       }
-      roomClients.get(gameId)!.add(clientId);
+      roomClients.get(gameId)!.add(ws);
 
       return { event: EventTypes.JOIN_GAME, payload: { result } };
     case EventTypes.ROLL_DICE:
       const { roomId } = payload;
       const diceResult = await lobbyManager.rollDice(roomId, clientId);
-      console.log(JSON.stringify(diceResult), "diceResult");
-      console.log(roomClients, "roomClients");
+      // console.log(JSON.stringify(diceResult), "diceResult");
+      // console.log(roomClients, "roomClients");
       const clientsInRoom = roomClients.get(roomId);
-      console.log(clientsInRoom, "clientsInRoom",diceResult,"diceResult");
+      // console.log(clientsInRoom,clientId, "clientskjhgcInRoomjj,",diceResult,"diceResult");
       if (clientsInRoom) {
-        // Broadcast to all other clients in the room
         clientsInRoom.forEach((clientWs) => {
-          // Make sure you don't send the message back to the user who initiated the roll
-          if (clientWs !== clientId) {
-            // Send dice results and board state to the other clients
-            ws.send(
-              JSON.stringify({
-                event: EventTypes.DICE_RESULTS,
-                payload: diceResult,
-              })
-            );
+          if (clientWs !== ws) {
+            const diceResultsPayload = diceResult.result.find(
+              (item:ClientMessage) => item.event === "DICE_RESULTS"
+            )?.payload;
+      
+            const boardStatePayload = diceResult.result.find(
+              (item:ClientMessage) => item.event === "BOARD_STATE"
+            )?.payload;
+            const players = boardStatePayload?.players || [];
+            const turn = boardStatePayload?.turn;
+            if (diceResultsPayload) {
+              clientWs.send(
+                JSON.stringify({
+                  event: EventTypes.DICE_RESULTS,
+                  payload: diceResultsPayload,
+                })
+              );
+            }
 
-            ws.send(
-              JSON.stringify({
-                event: EventTypes.BOARD_STATE,
-                payload: {
-                  roomId,
-                  players: Object.entries(diceResult.players).map(
-                    ([userId, position]) => ({
+            if (players.length > 0 && turn) {
+              clientWs.send(
+                JSON.stringify({
+                  event: EventTypes.BOARD_STATE,
+                  payload: {
+                    roomId: boardStatePayload.roomId,
+                    players: players.map(({ userId, position }:{userId:string,position:number}) => ({
                       userId,
                       position,
-                    })
-                  ),
-                  turn: diceResult.nextTurn,
-                },
-              })
-            );
+                    })),
+                    turn,
+                  },
+                })
+              );
+            }
+            if(diceResult.result.find((item:ClientMessage) => item.event === "GAME_FINISHED")){
+              const winner = diceResult.result.find((item:ClientMessage) => item.event === "GAME_FINISHED")?.payload.winner;
+              clientWs.send(
+                JSON.stringify({
+                  event: EventTypes.GAME_FINISHED,
+                  payload: {
+                    roomId: boardStatePayload.roomId,
+                    winner,
+                  },
+                })
+              );
+            }
           }
         });
       }

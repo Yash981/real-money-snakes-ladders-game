@@ -22,4 +22,4 @@ export const snakesAndLadders:NumberMap = {
     71: 91, // Ladder from 71 to 91
     80: 100 // Ladder from 80 to 100
   };
-  
+ export const BOARD_SIZE = 100;

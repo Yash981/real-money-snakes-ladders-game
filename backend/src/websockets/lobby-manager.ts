@@ -1,7 +1,6 @@
-import { v4 as uuidv4 } from "uuid";
 import prisma from "../db/client";
 import { EventTypes } from "./event-types";
-import { movePlayer } from "./websocket-server";
+import { movePlayer } from "./utils";
 
 interface Room {
   roomId: string;
@@ -21,98 +20,167 @@ class LobbyManager {
     }
     return LobbyManager.instance;
   }
-async joinGame(gameId: string, userId: string): Promise<any> {
+  async joinGame(gameId: string, userId: string): Promise<any> {
     console.log(gameId, userId, "gameuserid");
     if (gameId) {
-        const game = await prisma.game.findUnique({ where: { id: gameId } });
-        if (game) {
-            if (game.status === "WAITING") {
-                const res = await prisma.game.update({
-                    where: { id: gameId },
-                    data: {
-                        player2Id: userId,
-                        status: "IN_PROGRESS",
-                    },
-                });
-                console.log(
-                    `Player1 ${res.player1Id} and ${res.player2Id} joined the game: ${gameId}`
-                );
-                return `Player1 ${res.player1Id} and ${res.player2Id} joined the game: ${gameId} Game joined successfully! The game can now begin.`;
-            } else if (game.status === "IN_PROGRESS" && (game.player1Id === userId || game.player2Id === userId)) {
-                return `Welcome back! Connected successfully to game: ${gameId}`;
-            } else {
-                return `Game not found or already in progress.`;
-            }
-        } else {
-            return `Game not found.`;
-        }
-    } else {
-        const createdGame = await prisma.game.create({
+      const game = await prisma.game.findUnique({ where: { id: gameId } });
+      if (game) {
+        if (game.status === "WAITING") {
+          const res = await prisma.game.update({
+            where: { id: gameId },
             data: {
-                player1Id: userId,
-                currentTurn: userId,
-                status: "WAITING",
-                state: {},
+              player2Id: userId,
+              status: "IN_PROGRESS",
             },
-        });
-        console.log(`Waiting for a player to join the game: ${createdGame.id}`);
-        return `Waiting for a player to join the game: ${createdGame.id}`;
+          });
+          // console.log(
+          //   `Player1 ${res.player1Id} and ${res.player2Id} joined the game: ${gameId}`
+          // );
+          return `Player1 ${res.player1Id} and ${res.player2Id} joined the game: ${gameId} Game joined successfully! The game can now begin.`;
+        } else if (
+          game.status === "IN_PROGRESS" &&
+          (game.player1Id === userId || game.player2Id === userId)
+        ) {
+          return `Welcome back! Connected successfully to game: ${gameId}`;
+        } else {
+          return `Game not found or already in progress.`;
+        }
+      } else {
+        return `Game not found.`;
+      }
+    } else {
+      const createdGame = await prisma.game.create({
+        data: {
+          player1Id: userId,
+          currentTurn: userId,
+          status: "WAITING",
+          state: {},
+        },
+      });
+      // console.log(`Waiting for a player to join the game: ${createdGame.id}`);
+      return `Waiting for a player to join the game: ${createdGame.id}`;
     }
-}
+  }
   async rollDice(roomId: string, userId: string): Promise<any> {
-    // Fetch the game from the database
-    const game = await prisma.game.findUnique({ where: { id: roomId,player1Id:userId } });
-    const game2 = await prisma.game.findUnique({ where: { id: roomId,player2Id:userId } });
-    console.log(game, "game", game2, "game2");
+    const game = await prisma.game.findUnique({
+      where: { id: roomId, player1Id: userId },
+    });
+    const game2 = await prisma.game.findUnique({
+      where: { id: roomId, player2Id: userId },
+    });
+    // console.log(game, "game", game2, "game2");
     let currentGame = game || game2;
     if (!currentGame) {
-      return {error:"Game not found"};
+      return { error: "Game not found" };
+    }
+    if(currentGame.status === "COMPLETED"){
+      return { error: "Game is already completed!" };
     }
 
     if (currentGame.currentTurn !== userId) {
-      return {error:"It's not your turn!"};
+      return { error: "It's not your turn!" };
     }
+    
 
-    // Roll the dice
     const diceResult = Math.ceil(Math.random() * 6);
 
-    // Update the player's position
     //@ts-ignore
-    const updatedState = {...currentGame.state, [userId]: movePlayer(currentGame.state[userId] || 0, diceResult),
+    const updatedState = {...currentGame.state,[userId]: movePlayer(currentGame.state[userId] || 0, diceResult),
     };
 
-    // Switch the turn to the other player
     const nextTurn =
-      userId === currentGame.player1Id ? currentGame.player2Id : currentGame.player1Id;
-      console.log(nextTurn, "nextTurn");
-      // Update the game state in the database
+      userId === currentGame.player1Id
+        ? currentGame.player2Id
+        : currentGame.player1Id;
+
+    console.log(nextTurn, "nextTurn");
+    await prisma.game.update({
+      where: { id: roomId },
+      data: {
+        state: updatedState,
+        currentTurn: nextTurn as string,
+      },
+    });
+    if (
+      Object.values(updatedState).some(
+        (position) => (position as number) >= 100
+      )
+    ) {
       await prisma.game.update({
         where: { id: roomId },
         data: {
-          state: updatedState,
-          currentTurn: nextTurn as string,
+          status: "COMPLETED",
+          winner: userId,
         },
       });
-    return  { result:[
-      {
-        event: EventTypes.DICE_RESULTS,
-        payload: {
-          userId,
-          diceResults: [diceResult],
+      await prisma.gameHistory.create({
+        data: {
+          gameId: roomId,
+          userId: userId,
+          result: "WIN",
+          moneyChange: 100,
         },
-      },
-      {
-        event: EventTypes.BOARD_STATE,
-        payload: {
-          roomId,
-          players: Object.entries(updatedState).map(([id, position]) => ({
-            userId: id,
-            position,
-          })),
-          turn: nextTurn,
+      });
+      await prisma.gameHistory.create({
+        data: {
+          gameId: roomId,
+          userId: nextTurn as string,
+          result: "LOSE",
+          moneyChange: -100,
         },
-      },
-    ]};
+      });
+      return {
+        result: [
+          {
+            event: EventTypes.DICE_RESULTS,
+            payload: {
+              userId,
+              diceResults: [diceResult],
+            },
+          },
+          {
+            event: EventTypes.BOARD_STATE,
+            payload: {
+              roomId,
+              players: Object.entries(updatedState).map(([id, position]) => ({
+                userId: id,
+                position,
+              })),
+              turn: nextTurn,
+            },
+          },
+          {
+            event: EventTypes.GAME_FINISHED,
+            payload: {
+              roomId,
+              winner: userId,
+            },
+          },
+        ],
+      };
+    }
+    return {
+      result: [
+        {
+          event: EventTypes.DICE_RESULTS,
+          payload: {
+            userId,
+            diceResults: [diceResult],
+          },
+        },
+        {
+          event: EventTypes.BOARD_STATE,
+          payload: {
+            roomId,
+            players: Object.entries(updatedState).map(([id, position]) => ({
+              userId: id,
+              position,
+            })),
+            turn: nextTurn,
+          },
+        },
+      ],
+    };
   }
 
   getRoom(roomId: string): Room | undefined {
