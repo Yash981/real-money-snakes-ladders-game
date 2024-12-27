@@ -21,10 +21,8 @@ export const handleClientMessage = async (
     case EventTypes.ROLL_DICE:
       const { roomId } = payload;
       const diceResult = await lobbyManager.rollDice(roomId, clientId);
-      // console.log(JSON.stringify(diceResult), "diceResult");
-      // console.log(roomClients, "roomClients");
+;
       const clientsInRoom = roomClients.get(roomId);
-      // console.log(clientsInRoom,clientId, "clientskjhgcInRoomjj,",diceResult,"diceResult");
       if (clientsInRoom) {
         clientsInRoom.forEach((clientWs) => {
           if (clientWs !== ws) {
@@ -78,6 +76,10 @@ export const handleClientMessage = async (
       }
       console.log(diceResult, "diceResulttttt");
       return { event: EventTypes.ROLL_DICE, payload: diceResult?.error ? { error: diceResult.error } : diceResult };
+    case EventTypes.ABANDON_GAME:
+      const { abondonedGameId } = payload
+      const gameEndResult = await lobbyManager.abondonedGame(abondonedGameId,clientId)
+      return { event: EventTypes.ABANDON_GAME, payload: gameEndResult };
     default:
       return {
         event: EventTypes.ERROR,

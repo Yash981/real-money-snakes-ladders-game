@@ -1,6 +1,4 @@
 export enum EventTypes{
-    CREATE_ROOM = "CREATE_ROOM",
-    JOIN_ROOM = "JOIN_ROOM",
     ROLL_DICE = "ROLL_DICE",
     ABANDON_GAME ="ABANDON_GAME",
     DICE_RESULTS = "DICE_RESULTS",

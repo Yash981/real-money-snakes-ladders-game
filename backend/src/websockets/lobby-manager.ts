@@ -198,6 +198,54 @@ class LobbyManager {
       ],
     };
   }
+  async abondonedGame(abondonedGameId:string,userId:string):Promise<any>{
+    const getCurrentGameDetails = await prisma.game.findUnique({
+      where:{
+        id:abondonedGameId
+      }
+    })
+    const opponentUserId = getCurrentGameDetails?.player1Id === userId ? getCurrentGameDetails.player2Id : getCurrentGameDetails?.player1Id
+    await prisma.user.update({
+      where:{
+        id:userId
+      },
+      data:{
+        balance:{decrement:100}
+      } 
+    })
+    await prisma.user.update({
+      where:{
+        id:opponentUserId as string
+      },
+      data:{
+        balance:{increment:100}
+      } 
+    })
+    await prisma.game.update({
+      where:{
+        id:abondonedGameId
+      },
+      data:{
+        status:"COMPLETED",
+        winner:opponentUserId
+      }
+    })
+    await prisma.gameHistory.createMany({
+      data:[{
+        result:"LOSE",
+        moneyChange:-100,
+        gameId:abondonedGameId,
+        userId:userId
+      },{
+        result:"WIN",
+        moneyChange:100,
+        gameId:abondonedGameId,
+        userId:opponentUserId as string
+      }],
+      skipDuplicates:true
+    })
+    return {result:`Game abondoned successfully! ${opponentUserId} is the winner`}
+  }
 
   getRoom(roomId: string): Room | undefined {
     return this.rooms.get(roomId);

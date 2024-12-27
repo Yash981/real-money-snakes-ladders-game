@@ -18,7 +18,7 @@ export const generateToken = (userId: string) => {
   return jwt.sign({ userId }, JWT_SECRET, { expiresIn: JWT_EXPIRATION });
 };
 export const verifyWSToken = async (req:any) => {
-  const cookies = req.header.cookie;
+  const cookies = req.headers.cookie;
     const token = cookies;
     const user = jwt.verify(token!, process.env.JWT_SECRET as string) as any
     return await findUserByEmail(user.userId)

@@ -7,6 +7,7 @@ export const setupWebSocketServer = (server: any) => {
   const wss = new WebSocketServer({ server });
   wss.on("connection",  async function connection(ws, req) {
     const clientId = await verifyWSToken(req);
+    console.log("Client connected",clientId);
     if(!clientId){
       ws.send(JSON.stringify({ event: EventTypes.ERROR, payload: { error: 'Unauthorized' } }));
       ws.close();
