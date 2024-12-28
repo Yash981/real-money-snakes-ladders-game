@@ -21,7 +21,6 @@ class LobbyManager {
     return LobbyManager.instance;
   }
   async joinGame(gameId: string, userId: string): Promise<any> {
-    console.log(gameId, userId, "gameuserid");
     if (gameId) {
       const game = await prisma.game.findUnique({ where: { id: gameId } });
       if (game) {
@@ -33,9 +32,6 @@ class LobbyManager {
               status: "IN_PROGRESS",
             },
           });
-          // console.log(
-          //   `Player1 ${res.player1Id} and ${res.player2Id} joined the game: ${gameId}`
-          // );
           return `Player1 ${res.player1Id} and ${res.player2Id} joined the game: ${gameId} Game joined successfully! The game can now begin.`;
         } else if (
           game.status === "IN_PROGRESS" &&
@@ -68,7 +64,6 @@ class LobbyManager {
     const game2 = await prisma.game.findUnique({
       where: { id: roomId, player2Id: userId },
     });
-    // console.log(game, "game", game2, "game2");
     let currentGame = game || game2;
     if (!currentGame) {
       return { error: "Game not found" };

@@ -1,4 +1,4 @@
-import { BOARD_SIZE, snakesAndLadders } from "./constants";
+import { BOARD_SIZE, snakesAndLadders } from "../utils/constants";
 
 export const createBoard = () => {
     const board = new Array(BOARD_SIZE).fill(0);

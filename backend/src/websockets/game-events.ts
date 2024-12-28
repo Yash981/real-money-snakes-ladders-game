@@ -21,7 +21,6 @@ export const handleClientMessage = async (
     case EventTypes.ROLL_DICE:
       const { roomId } = payload;
       const diceResult = await lobbyManager.rollDice(roomId, clientId);
-;
       const clientsInRoom = roomClients.get(roomId);
       if (clientsInRoom) {
         clientsInRoom.forEach((clientWs) => {

@@ -4,6 +4,7 @@ import { AmountSchema, AuthFormSchema } from '../types/user-types'
 type UserSignUpData = z.infer<typeof AuthFormSchema>;
 type AmountTypeData = z.infer<typeof AmountSchema>
 export const findUserByEmail = async (email:string) =>{
+    if(!email) return;
     return await prisma.user.findUnique({
         where:{ email }
     })

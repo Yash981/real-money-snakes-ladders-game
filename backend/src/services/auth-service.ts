@@ -17,9 +17,19 @@ export const comparePassword = async (password: string, hashedPassword: string) 
 export const generateToken = (userId: string) => {
   return jwt.sign({ userId }, JWT_SECRET, { expiresIn: JWT_EXPIRATION });
 };
-export const verifyWSToken = async (req:any) => {
-  const cookies = req.headers.cookie;
-    const token = cookies;
+export const verifyWSToken = async (ws:any,req:any) => {
+  console.log(req,req.headers['sec-websocket-protocol']);
+  const protocols = req.headers['sec-websocket-protocol'] 
+  if(!protocols){
+    throw new Error("Missing Sec-WebSocket-Protocol header");
+  }
+    const token = protocols.split(",")[1]?.trim() ;
+    console.log(token,'token middleware');
+    if(ws.protocol !== 'access_token' || !token){
+      ws.close(1008,'Unauthorized')
+      return
+    }
     const user = jwt.verify(token!, process.env.JWT_SECRET as string) as any
+    console.log(user,'user middleware');
     return await findUserByEmail(user.userId)
 };

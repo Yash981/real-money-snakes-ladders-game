@@ -1,3 +1,4 @@
+import WebSocketClient from "@/components/web-socket";
 
 
 export default function Home() {
@@ -5,6 +6,7 @@ export default function Home() {
     <>
       <h1>Home</h1>
       <p>Welcome to the home page.</p>
+      <WebSocketClient />
     </>
   );
 }
