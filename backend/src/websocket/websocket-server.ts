@@ -12,7 +12,7 @@ export const setupWebSocketServer = (server: any) => {
       ws.close();
       return;
     }
-    console.log('yaha jara Unauthorized',)
+    // console.log('yaha jara Unauthorized',)
     ws.on("message", async function message(data) {
       try {
         const message: ClientMessage = JSON.parse(data.toString());

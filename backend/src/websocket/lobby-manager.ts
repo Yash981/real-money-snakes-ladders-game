@@ -33,12 +33,11 @@ class LobbyManager {
             },
           });
           return `Player1 ${res.player1Id} and ${res.player2Id} joined the game: ${gameId} Game joined successfully! The game can now begin.`;
-        } else if (
-          game.status === "IN_PROGRESS" &&
-          (game.player1Id === userId || game.player2Id === userId)
-        ) {
+        } 
+        else if (game.status === "IN_PROGRESS" && (game.player1Id === userId ||game.player2Id === userId)) {
           return `Welcome back! Connected successfully to game: ${gameId}`;
-        } else {
+        } 
+        else {
           return `Game not found or already in progress.`;
         }
       } else {
@@ -53,7 +52,6 @@ class LobbyManager {
           state: {},
         },
       });
-      // console.log(`Waiting for a player to join the game: ${createdGame.id}`);
       return `Waiting for a player to join the game: ${createdGame.id}`;
     }
   }

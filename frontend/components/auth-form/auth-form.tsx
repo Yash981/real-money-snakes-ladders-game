@@ -33,6 +33,9 @@ export const AuthForm = () => {
             try {
                 const response = await LoginRouteAction(data)
                 console.log(response)
+                if(response && response.token){
+                    localStorage.setItem('wsToken',response.token)
+                }
                 router.push("/")
             } catch (error) {
                 setError((error as Error).message)

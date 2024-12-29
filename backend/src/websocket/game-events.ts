@@ -16,7 +16,6 @@ export const handleClientMessage = async (
         roomClients.set(gameId, new Set());
       }
       roomClients.get(gameId)!.add(ws);
-
       return { event: EventTypes.JOIN_GAME, payload: { result } };
     case EventTypes.ROLL_DICE:
       const { roomId } = payload;

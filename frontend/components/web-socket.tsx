@@ -1,29 +1,17 @@
 "use client"
-import React, { useEffect, useState, useRef, useContext,createContext } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import  { ClientMessage, EventTypes } from "@/lib/types/event-types";
 import { Button } from "./ui/button";
-interface WebSocketContextType {
-  sendMessage: (event: EventTypes, payload: {roomId?:string,gameId?:string,abondonedGameId?:string}) => void;
-  messages: string[] | null;
-  connectionStatus: string | null;
-}
-const WebSocketContext = createContext<WebSocketContextType | null>(null);
-export const useWebSocket = () => {
-  const context = useContext(WebSocketContext);
-  if (!context) {
-    throw new Error('useWebSocket must be used within a WebSocketProvider');
-  }
-  return context;
-};
 const WebSocketProvider = () => {
   const [connectionStatus, setConnectionStatus] = useState("Disconnected");
   const [messages, setMessages] = useState<any>([]);
   const wsRef = useRef<WebSocket | null>(null);
-
+  const token = localStorage.getItem('wsToken') as string
+  // console.log(token,'tokkken')
   // Connect to the WebSocket server
   useEffect(() => {
     console.log("Connecting to WebSocket server...",window.location.protocol);
-    const ws = new WebSocket("ws://localhost:9000", ["access_token",'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJuZW9uMkBnbWFpbC5jb20iLCJpYXQiOjE3MzUzNjkzNDksImV4cCI6MTczNTQ1NTc0OX0.emSPxi3EjrDiErZeilymWRS2M73f8k-CQu7M4JcsD-o']);
+    const ws = new WebSocket("ws://localhost:9000", ["access_token",token]);
     wsRef.current = ws;
 
     ws.onopen = () => {
@@ -96,7 +84,7 @@ const WebSocketProvider = () => {
       console.error("WebSocket is not connected");
     }
   };
-  console.log(messages,'messages')
+  // console.log(messages,'messages')
   return (
     <div>
       <h1>WebSocket Client</h1>
@@ -104,7 +92,7 @@ const WebSocketProvider = () => {
       <div>
         <Button
           onClick={() =>
-            sendMessage(EventTypes.JOIN_GAME, { gameId: "dfb6d296-0744-41ba-b4d3-125611cb9100" })
+            sendMessage(EventTypes.JOIN_GAME, {  })
           }
           variant={"secondary"}
 
@@ -134,9 +122,6 @@ const WebSocketProvider = () => {
           <li key={index}>{msg.payload}</li>
         ))}
       </ul>
-      <WebSocketContext.Provider value={{sendMessage,connectionStatus,messages}}>
-        {/* <WebSocketClient /> */}
-      </WebSocketContext.Provider>
     </div>
   );
 };

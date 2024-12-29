@@ -2,7 +2,7 @@ import express, { Response } from "express";
 import { UserRouter } from "./routes/user-router";
 import dotenv from "dotenv";
 import cookieParser from "cookie-parser";
-import { setupWebSocketServer } from "./websockets/websocket-server";
+import { setupWebSocketServer } from "./websocket/websocket-server";
 import http from "http";
 dotenv.config();
 const app = express();
