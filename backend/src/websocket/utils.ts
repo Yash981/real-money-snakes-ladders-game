@@ -12,23 +12,15 @@ export const createBoard = () => {
     }
   
     return board;
-  };
-  export const movePlayer = (currentPosition: number, diceRoll: number) => {
+};
+export const movePlayer = (currentPosition: number, board: number[]) => {
+    const diceRoll = Math.floor(Math.random() * 6) + 1;
     let newPosition = currentPosition + diceRoll;
-  
+    console.log(`Dice roll: ${diceRoll}`, `Current position: ${currentPosition}`, `New position: ${newPosition}`);
     if (newPosition > BOARD_SIZE) {
       console.log("Roll exceeds board limit. Try again!");
-      return currentPosition;
+      return board[currentPosition];
     }
   
-    if (snakesAndLadders[newPosition]) {
-      console.log(
-        `Hit a ${newPosition > currentPosition ? "ladder" : "snake"}! Moving to ${
-          snakesAndLadders[newPosition]
-        }`
-      );
-      return snakesAndLadders[newPosition];
-    }
-  
-    return newPosition;
+    return board[newPosition]
   };

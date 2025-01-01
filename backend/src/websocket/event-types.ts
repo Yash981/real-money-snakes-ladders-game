@@ -5,9 +5,14 @@ export enum EventTypes{
     BOARD_STATE = 'BOARD_STATE',
     GAME_FINISHED ='GAME_FINISHED',
     JOIN_GAME='JOIN_GAME',
-    ERROR='ERROR'
+    ERROR='ERROR',
+    GAME_ADDED='GAME_ADDED',
+    GAME_STARTED='GAME_STARTED'
   };
 export interface ClientMessage {
     event:EventTypes;
     payload:any;
+}
+export interface userJwtClaims{
+  userId:string,
 }
