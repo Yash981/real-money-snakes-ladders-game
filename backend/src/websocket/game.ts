@@ -23,15 +23,16 @@ class Game {
 
     }
 
-    rollDice(playerId: string): number {
+    rollDice(playerId: string): {diceResults:number,nextPosition:number} | number {
         if(playerId !== this.getCurrentTurn()){
             return -1
         }
         const nextPos = movePlayer(this.players[playerId],this.board)
-        this.players[playerId] = nextPos
+        this.players[playerId] = 0
+        this.players[playerId] = nextPos.newPosition
         const nextPlayer = this.nextTurn()
-        console.log(`Player ${playerId} moved to position ${nextPos}. Next turn: ${nextPlayer}`);
-        return nextPos
+        console.log(`Player ${playerId} moved to position ${nextPos.newPosition}. Next turn: ${nextPlayer}`);
+        return { diceResults: nextPos.diceRoll,nextPosition: nextPos.newPosition }
 
     }
     getPlayerPosition(playerId: string): number {

@@ -5,11 +5,13 @@ export enum EventTypes{
     BOARD_STATE = 'BOARD_STATE',
     GAME_FINISHED ='GAME_FINISHED',
     JOIN_GAME='JOIN_GAME',
-    ERROR='ERROR'
+    ERROR='ERROR',
+    GAME_STARTED='GAME_STARTED',
+    GAME_ADDED='GAME_ADDED',
   };
 export interface ClientMessage {
     event:EventTypes;
-    payload:{roomId?:string,gameId?:string,abondonedGameId?:string};
+    payload?:{roomId?:string,gameId?:string,abondonedGameId?:string};
 }
 export interface Player{
   userId:string,

@@ -15,6 +15,7 @@ import { signupRouteAction } from "@/actions/signup-route-action";
 
 export const AuthForm = () => {
     const [error , setError] = useState<string | null>(null)
+    const [isLoading, setIsLoading] = useState(false)
     const pathname = usePathname()
     const router = useTransitionRouter()
     const form = useForm<z.infer<typeof AuthFormSchema>>({
@@ -29,6 +30,7 @@ export const AuthForm = () => {
         if (!parsedData.success) {
             return setError(parsedData.error.errors[0].message)
         }
+        setIsLoading(true)
         if(pathname === "/login"){
             try {
                 const response = await LoginRouteAction(data)
@@ -36,9 +38,11 @@ export const AuthForm = () => {
                 if(response && response.token){
                     localStorage.setItem('wsToken',response.token)
                 }
-                router.push("/")
+                router.push("/lobby")
             } catch (error) {
                 setError((error as Error).message)
+            } finally {
+                setIsLoading(false)
             }
         } else {
             try {
@@ -47,6 +51,8 @@ export const AuthForm = () => {
                 router.push("/login")
             } catch (error) {
                 setError((error as Error).message)
+            } finally {
+                setIsLoading(false)
             }
         }
     }
@@ -60,7 +66,7 @@ export const AuthForm = () => {
                         <FormItem>
                             <FormLabel>Email</FormLabel>
                             <FormControl>
-                                <Input type="email" {...field} />
+                                <Input type="email" {...field} disabled={isLoading}/>
                             </FormControl>
                             <FormMessage />
                         </FormItem>
@@ -73,7 +79,7 @@ export const AuthForm = () => {
                         <FormItem>
                             <FormLabel>Password</FormLabel>
                             <FormControl>
-                                <Input type="password" {...field} />
+                                <Input type="password" {...field}  disabled={isLoading}/>
                             </FormControl>
                             <FormMessage />
                         </FormItem>
@@ -85,7 +91,7 @@ export const AuthForm = () => {
                         {pathname === "/login" ? "Don't have an account? " : "Already have an account? " }<p className="hover:underline">{pathname !== "/login" ? ' Login' : ' Signup'}</p>
                     </Link>
                 </div>
-                <Button type="submit" variant={"default"} className="w-full">
+                <Button type="submit" variant={"default"} disabled={isLoading} className="w-full">
                     {pathname === "/login" ? "Login" : "Signup"}
                 </Button>
             </form>
