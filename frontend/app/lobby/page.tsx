@@ -9,7 +9,7 @@ import { set } from 'zod';
 const LobbyPage: React.FC = () => {
     const [playnow, setPlayNow] = useState(false);
     const { sendMessage,connected,payload} = useWebSocket();
-    const [seconds, setSeconds] = useState(5);
+    const [seconds, setSeconds] = useState(10);
     const router = useTransitionRouter();
     const handleCreateGame = () => {
         console.log('Create Game',connected);

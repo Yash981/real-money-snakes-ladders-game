@@ -36,9 +36,7 @@ class Game {
 
     }
     getPlayerPosition(playerId: string): number {
-        if (!this.players[playerId]) {
-            throw new Error("Player does not exist");
-        }
+        console.log(`this.players[playerId]: ${JSON.stringify(this.players)}`);
         return this.players[playerId];
     }
 

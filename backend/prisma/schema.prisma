@@ -29,9 +29,10 @@ model User {
 
 model Game {
   id          String        @id @default(uuid())
-  player1     User          @relation("Player1Games", fields: [player1Id], references: [id])
+  gameId      String        @unique
+  player1     User          @relation("Player1Games", fields: [player1Id], references: [email])
   player1Id   String
-  player2     User?         @relation("Player2Games", fields: [player2Id], references: [id])
+  player2     User?         @relation("Player2Games", fields: [player2Id], references: [email])
   player2Id   String?
   currentTurn String
   state       Json?
@@ -44,7 +45,7 @@ model Game {
 
 model GameHistory {
   id          String     @id @default(uuid())
-  user        User       @relation("UserGameHistory", fields: [userId], references: [id])
+  user        User       @relation("UserGameHistory", fields: [userId], references: [email])
   userId      String
   gameId      String
   game        Game       @relation(fields: [gameId], references: [id])

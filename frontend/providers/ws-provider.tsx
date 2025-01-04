@@ -14,7 +14,7 @@ interface WebSocketContextType {
 export const WebSocketContext = createContext<WebSocketContextType | undefined>(undefined);
 
 export function WebSocketProvider({ children }: { children: React.ReactNode }) {
-  const { setboardState} = useWebSocketStore()
+  const { setboardState,setRolledDiceDetails,setGamePlayers} = useWebSocketStore()
   const ws = useRef<WebSocket | null>(null);
   const [connected, setConnected] = useState(false);
   const [payload, setPayload] = useState<ClientMessage>();
@@ -52,6 +52,7 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
       case EventTypes.GAME_STARTED:
         toast.success("Game Started");
         if(typeof window !== 'undefined') sessionStorage.setItem('gameId', message.gameId);
+        setGamePlayers(message.gameStarted);
         setPayload({
           event: message.event,
           payload:message.gameId
@@ -68,6 +69,7 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
         toast.info("Game Over");
         break;
       case EventTypes.DICE_RESULTS:
+        setRolledDiceDetails(message.diceResult);
         break; 
       case EventTypes.BOARD_STATE:
         setboardState(message.playerPositions);
@@ -77,7 +79,7 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
         });
         break;
       case EventTypes.ERROR:
-        toast.error("Error", message.payload);
+        toast.error(`Error ${message.error}`,);
         break;
     }
   };

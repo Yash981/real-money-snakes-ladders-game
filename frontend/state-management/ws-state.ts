@@ -1,31 +1,27 @@
 import { EventTypes } from '@/lib/types/event-types';
 import { create }  from 'zustand';
-
+interface rolledDiceDetailsType{
+  username:string;
+  diceResults:number;
+  nextPosition:number;
+}
 type WebSocketStore = {
-  // wsRef: WebSocket | null;
-  // setWsRef: (ws: WebSocket | null) => void;
-  // sendMessage: (event: EventTypes, payload: { roomId?: string; gameId?: string; abandonedGameId?: string }) => void;
   boardState: any;
   setboardState: (boardState: any) => void;
+  rolledDiceDetails: rolledDiceDetailsType;
+  setRolledDiceDetails: (rolledDiceDetails: rolledDiceDetailsType) => void;
+  gamePlayers: string[];
+  setGamePlayers: (gamePlayers: string[]) => void;
+
 };
 
 const useWebSocketStore = create<WebSocketStore>((set) => ({
   boardState:[],
   setboardState: (boardState) => set({ boardState }),
-  // wsRef: null,
-  // setWsRef: (ws) => set({ wsRef: ws }),
-  // sendMessage: (event, payload) => {
-  //   set((state) => {
-  //     const ws = state.wsRef;
-  //     if (ws?.readyState === WebSocket.OPEN) {
-  //       console.log(JSON.stringify({ event, payload }),'state')
-  //       ws.send(JSON.stringify({ event, payload }));
-  //     } else {
-  //       console.error("WebSocket is not connected");
-  //     }
-  //     return state;
-  //   });
-  // },
+  rolledDiceDetails: {username:'',diceResults:0,nextPosition:0},
+  setRolledDiceDetails: (rolledDiceDetails) => set({ rolledDiceDetails }),
+  gamePlayers: [],
+  setGamePlayers: (gamePlayers) => set({ gamePlayers }),
 }));
 
 export default useWebSocketStore;

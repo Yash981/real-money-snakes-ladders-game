@@ -1,5 +1,5 @@
 "use client"
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { snakesAndLadders } from '@/lib/constants';
 import { useWebSocket } from '@/hooks/use-socket-hook';
@@ -8,6 +8,7 @@ import { EventTypes } from '@/lib/types/event-types';
 import { toast } from 'sonner';
 import useWebSocketStore from '@/state-management/ws-state';
 import { useTransitionRouter } from 'next-view-transitions';
+import RollDice from './roll-dice';
 interface Square {
   number: number;
   hasSnake?: boolean;
@@ -15,14 +16,11 @@ interface Square {
   snakeEnd?: number;
   ladderEnd?: number;
 }
-type GameBoardProps = {
-  playerName?: string;
-  player2Name?: string;
-}
 
-const GameBoard = ({ playerName, player2Name }: GameBoardProps) => {
+
+const GameBoard = () => {
   const { sendMessage, connected } = useWebSocket()
-  const { boardState } = useWebSocketStore();
+  const { boardState,rolledDiceDetails,gamePlayers } = useWebSocketStore();
   const router = useTransitionRouter()
   const createBoard = (): Square[] => {
     const board: Square[] = [];
@@ -50,10 +48,15 @@ const GameBoard = ({ playerName, player2Name }: GameBoardProps) => {
     return 'bg-white hover:bg-gray-100';
   };
   const renderPawn = (squareNumber: number) => {
-    console.log(Object.entries(boardState).map(([x,y])=>[x,y]), 'boardState')
+    const currentPlayer = rolledDiceDetails.username;
+    const diceResult = rolledDiceDetails.diceResults;
+    const currentPosition = rolledDiceDetails.nextPosition - diceResult;
+    const targetPosition = rolledDiceDetails.nextPosition;
     const isPlayer1Here = boardState.map((x: any) => x?.position)[0] === squareNumber;
     const isPlayer2Here = boardState.map((x: any) => x?.position)[1] === squareNumber;
-
+    if(rolledDiceDetails.nextPosition === 100){
+      toast.success('Game Over')
+    }
     return (
       <>
         {isPlayer1Here && (
@@ -65,6 +68,7 @@ const GameBoard = ({ playerName, player2Name }: GameBoardProps) => {
       </>
     );
   };
+  
   const handleRollDice = () => {
     const gameId = sessionStorage.getItem('gameId');
     if (!gameId) {
@@ -77,16 +81,17 @@ const GameBoard = ({ playerName, player2Name }: GameBoardProps) => {
         gameId
       }
     })
+    
   }
-
   return (
     <div className="flex flex-col items-center justify-center min-h-screen p-4">
       <div className="flex justify-between w-full max-w-4xl mb-6">
-        <PlayerProfile name={`${'Player1'} ${connected ? '🟢' : '🔴'}`} score={0} />
+        <PlayerProfile name={`${gamePlayers[0]?.trim() || 'Player1'} ${connected ? '🟢' : '🔴'}`} score={0} />
         <div className=" flex justify-end">
-          <Button className="bg-blue-500 hover:bg-blue-600" onClick={handleRollDice}>Roll Dice</Button>
+          <RollDice onRoll={handleRollDice}  />
+
         </div>
-        <PlayerProfile name={`${'Player2'} ${connected ? '🟢' : '🔴'}`} score={0} />
+        <PlayerProfile name={`${gamePlayers[1]?.trim() || 'Player2'} ${connected ? '🟢' : '🔴'}`} score={0} />
       </div>
       <h1 className="text-3xl font-bold mb-6">Snakes and Ladders</h1>
       <div className="grid grid-cols-10 gap-1 max-w-4xl w-full border-2 border-gray-300 p-2 bg-gray-100 rounded-lg">
