@@ -15,14 +15,21 @@ class Game {
 
     }
 
-    addPlayer(playerId: string) {
-        if (!this.players[playerId]) {
+    addPlayer(playerId: string,position?:number) {
+        if (position) {
+            if (!(playerId in this.players)) {
+                this.players[playerId] = position;
+            }
+        }
+        else if (!this.players[playerId]) {
             this.players[playerId] = 0;
         }
-        console.log(`Player added: ${playerId}, Position: ${this.players[playerId]}`);
+        console.log(`Player added: ${playerId}, Position: ${this.players[playerId]} ${JSON.stringify(this.players)}`);
 
     }
-
+    setJoinedUserDetails(gameId:string){
+        this.gameId = gameId
+    }
     rollDice(playerId: string): {diceResults:number,nextPosition:number} | number {
         if(playerId !== this.getCurrentTurn()){
             return -1

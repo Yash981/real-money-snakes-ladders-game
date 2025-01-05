@@ -101,33 +101,42 @@ export class GameManager {
                     winner: user.name,
                   })
                 );
-                await prisma.game.update({
-                  where:{
-                    gameId:gameToRoll.gameId
-                  },
-                  data:{
-                    status:"COMPLETED",
-                    state:{
-                      player1:gameToRoll.getPlayers()[Object.keys(gameToRoll.getPlayers())[0]],
-                      player2:gameToRoll.getPlayers()[Object.keys(gameToRoll.getPlayers())[1]],
-                      player1Position: gameToRoll.getPlayerPosition(Object.keys(gameToRoll.getPlayers())[0]),
-                      player2Position: gameToRoll.getPlayerPosition(Object.keys(gameToRoll.getPlayers())[1]),
+                await prisma.$transaction(async (prisma) => {
+                  await prisma.game.update({
+                    where: {
+                      gameId: gameToRoll.gameId,
                     },
-                    winner:user.name,
-                    GameHistory:{
-                      createMany:{
-                        data:[{
-                          userId:user.name,
-                          moneyChange:100,
-                          result:"WIN",
-                        },{
-                          userId:socketManager.getPlayerNamesIntheRoom(gameToRoll.gameId).split("and").filter((x) => x.trim() !== user.name)[0],
-                          moneyChange:-100,
-                          result:"LOSE",
-                        }]
+                    data: {
+                      status: "COMPLETED",
+                      state: {
+                        player1: Object.keys(gameToRoll.getPlayers())[0],
+                        player2: Object.keys(gameToRoll.getPlayers())[1],
+                        player1Position: gameToRoll.getPlayerPosition(Object.keys(gameToRoll.getPlayers())[0]),
+                        player2Position: gameToRoll.getPlayerPosition(Object.keys(gameToRoll.getPlayers())[1]),
+                      },
+                      winner: user.name,
+                    },
+                  });
+                  await prisma.gameHistory.create({
+                    data: 
+                      {
+                        gameId: gameToRoll.gameId,
+                        userId: user.name,
+                        moneyChange: 100,
+                        result: "WIN",
                       }
-                    }
-                }})
+                  })
+                  
+                  await prisma.gameHistory.create({
+                    data:
+                      {
+                        gameId: gameToRoll.gameId,
+                        userId: socketManager.getPlayerNamesIntheRoom(gameToRoll.gameId).split("and").filter((x) => x.trim() !== user.name)[0].trim(),
+                        moneyChange: -100,
+                        result: "LOSE",
+                      },
+                  });
+                }, { timeout: 10000 });
                 socketManager.removeUser(user.id);
                 this.removeGame(gameToRoll.gameId);
                 return;
@@ -162,8 +171,8 @@ export class GameManager {
                 },
                 data:{
                   state:{
-                    player1:gameToRoll.getPlayers()[Object.keys(gameToRoll.getPlayers())[0]],
-                    player2:gameToRoll.getPlayers()[Object.keys(gameToRoll.getPlayers())[1]],
+                    player1:Object.keys(gameToRoll.getPlayers())[0],
+                    player2:Object.keys(gameToRoll.getPlayers())[1],
                     player1Position: gameToRoll.getPlayerPosition(Object.keys(gameToRoll.getPlayers())[0]),
                     player2Position: gameToRoll.getPlayerPosition(Object.keys(gameToRoll.getPlayers())[1]),
                   },
@@ -211,12 +220,12 @@ export class GameManager {
               data:{
                 status:"COMPLETED",
                 state:{
-                  player1:gameToAbandon.getPlayers()[Object.keys(gameToAbandon.getPlayers())[0]],
-                  player2:gameToAbandon.getPlayers()[Object.keys(gameToAbandon.getPlayers())[1]],
+                  player1:Object.keys(gameToAbandon.getPlayers())[0],
+                  player2:Object.keys(gameToAbandon.getPlayers())[1],
                   player1Position: gameToAbandon.getPlayerPosition(Object.keys(gameToAbandon.getPlayers())[0]),
                   player2Position: gameToAbandon.getPlayerPosition(Object.keys(gameToAbandon.getPlayers())[1]),
                 },
-                winner:socketManager.getPlayerNamesIntheRoom(gameToAbandon.gameId).split("and").filter((x) => x.trim() !== user.name)[0],
+                winner:socketManager.getPlayerNamesIntheRoom(gameToAbandon.gameId).split("and").filter((x) => x.trim() !== user.name)[0].trim(),
                 GameHistory:{
                   createMany:{
                     data:[{
@@ -224,7 +233,7 @@ export class GameManager {
                       moneyChange:-100,
                       result:"LOSE",
                     },{
-                      userId:socketManager.getPlayerNamesIntheRoom(gameToAbandon.gameId).split("and").filter((x) => x.trim() !== user.name)[0],
+                      userId:socketManager.getPlayerNamesIntheRoom(gameToAbandon.gameId).split("and").filter((x) => x.trim() !== user.name)[0].trim(),
                       moneyChange:100,
                       result:"WIN",
                     }]
@@ -238,14 +247,25 @@ export class GameManager {
           break;
         case EventTypes.JOIN_GAME:
           const gameIdToJoin = message.payload.gameId as string;
-          const gamePlayerPositions = await prisma.game.findFirst({
+          const gamePlayerPositions = await prisma.game.findUnique({
             where:{
               gameId:gameIdToJoin
             }
           })
-          socketManager.broadcast(gameIdToJoin, 
+          console.log(JSON.stringify(gamePlayerPositions))
+          const JoinGame = new Game();
+          JoinGame.addPlayer(gamePlayerPositions?.player1Id as string,
+            //@ts-ignore
+            gamePlayerPositions?.state?.player1Position as number)
+          JoinGame.addPlayer(gamePlayerPositions?.player2Id as string,
+          //@ts-ignore
+          gamePlayerPositions?.state?.player2Position)
+          JoinGame.setJoinedUserDetails(gameIdToJoin)
+          this.games.push(JoinGame)
+          socketManager.addUser(gameIdToJoin,user)
+          socketManager.broadcast(gameIdToJoin,
             JSON.stringify({
-            event: EventTypes.GAME_STARTED,
+            event: EventTypes.GAME_RESUME,
             gameId: gameIdToJoin,
             playerPositions:gamePlayerPositions?.state
           }))

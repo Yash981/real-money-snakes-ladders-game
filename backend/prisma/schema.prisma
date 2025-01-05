@@ -48,7 +48,7 @@ model GameHistory {
   user        User       @relation("UserGameHistory", fields: [userId], references: [email])
   userId      String
   gameId      String
-  game        Game       @relation(fields: [gameId], references: [id])
+  game        Game       @relation(fields: [gameId], references: [gameId])
   result      GameResult
   moneyChange Float
   createdAt   DateTime   @default(now())
