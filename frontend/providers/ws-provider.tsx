@@ -14,7 +14,7 @@ interface WebSocketContextType {
 export const WebSocketContext = createContext<WebSocketContextType | undefined>(undefined);
 
 export function WebSocketProvider({ children }: { children: React.ReactNode }) {
-  const { setboardState,setRolledDiceDetails,setGamePlayers} = useWebSocketStore()
+  const { setboardState,setRolledDiceDetails,setGamePlayers,setSocketDetails} = useWebSocketStore()
   const ws = useRef<WebSocket | null>(null);
   const [connected, setConnected] = useState(false);
   const [payload, setPayload] = useState<ClientMessage>();
@@ -52,6 +52,7 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
       case EventTypes.GAME_STARTED:
         toast.success("Game Started");
         if(typeof window !== 'undefined') sessionStorage.setItem('gameId', message.gameId);
+        setSocketDetails(message.playersSockets)
         setGamePlayers(message.gameStarted);
         setPayload({
           event: message.event,

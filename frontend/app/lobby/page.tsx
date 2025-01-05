@@ -1,7 +1,10 @@
 "use client"
+import { logoutRouteAction } from '@/actions/logout-route-action';
+import { Button } from '@/components/ui/button';
 import { useWebSocket } from '@/hooks/use-socket-hook';
 import { EventTypes } from '@/lib/types/event-types';
 import useWebSocketStore from '@/state-management/ws-state';
+import { LogOut } from 'lucide-react';
 import { useTransitionRouter } from 'next-view-transitions';
 import React, { useEffect, useState } from 'react';
 import { set } from 'zod';
@@ -16,7 +19,7 @@ const LobbyPage: React.FC = () => {
         if(connected){
             setPlayNow(true);
             sendMessage({
-                event: EventTypes.JOIN_GAME,
+                event: EventTypes.INIT_GAME,
             });
         } else {
             console.log('Not connected to websocket');
@@ -25,20 +28,29 @@ const LobbyPage: React.FC = () => {
     useEffect(() => {
         if(payload && payload.event === EventTypes.GAME_STARTED){
             setPlayNow(false);
+            let timer:any;
             if(seconds > 0){
-                const timer = setTimeout(() => {
+                timer = setTimeout(() => {
                     setSeconds(seconds - 1);
                 }, 1000);
                 return ()=> clearTimeout(timer);
             } else {
                 router.push('/')
+                return () => clearTimeout(timer)
             }
         }
     }, [payload, router, seconds])
     
     console.log('Payload',payload);
     return (
-        <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100">
+        <div className='bg-gray-100 min-h-screen '>
+            <div className="float-end mt-5 mr-5 ">
+                <Button variant={"default"} onClick={async()=>{
+                    await logoutRouteAction();
+                    router.push('/signup');
+                }}><LogOut/>Logout</Button>
+            </div>
+            <div className="flex flex-col items-center justify-center  bg-gray-100  h-full">
             <h1 className="text-4xl font-bold mb-8">Snakes & Ladders</h1>
             <div className="flex flex-col items-center space-y-4">
                 {!playnow &&<button
@@ -76,6 +88,7 @@ const LobbyPage: React.FC = () => {
                 }
 
             </div>
+        </div>
         </div>
     );
 };

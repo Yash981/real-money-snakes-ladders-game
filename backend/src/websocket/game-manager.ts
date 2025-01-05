@@ -52,6 +52,7 @@ export class GameManager {
                 gameStarted: socketManager
                   .getPlayerNamesIntheRoom(game.gameId)
                   .split("and"),
+                playersSockets : socketManager.getUserSocketByroomId(game.gameId)
               })
             );
             const { player1, player2 } =

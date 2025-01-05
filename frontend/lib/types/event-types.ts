@@ -8,6 +8,7 @@ export enum EventTypes{
     ERROR='ERROR',
     GAME_STARTED='GAME_STARTED',
     GAME_ADDED='GAME_ADDED',
+    INIT_GAME='INIT_GAME'
   };
 export interface ClientMessage {
     event:EventTypes;

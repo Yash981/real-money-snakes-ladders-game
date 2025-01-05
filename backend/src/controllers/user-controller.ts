@@ -166,3 +166,17 @@ export const getCurrentBalance = async (req: Request, res: Response) => {
     balance: getUser.balance,
   });
 }
+export const UserLogout = async (req: Request, res: Response) => {
+  try {
+    res.clearCookie('token', {
+      path: '/',
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
+    });
+    
+    res.status(200).json({ message: "Logout Successful" });
+  } catch (error) {
+      res.status(500).json({error:"Error logging out"})
+  }
+}

@@ -20,7 +20,7 @@ interface Square {
 
 const GameBoard = () => {
   const { sendMessage, connected } = useWebSocket()
-  const { boardState,rolledDiceDetails,gamePlayers } = useWebSocketStore();
+  const { boardState,rolledDiceDetails,gamePlayers,socketDetails } = useWebSocketStore();
   const router = useTransitionRouter()
   const createBoard = (): Square[] => {
     const board: Square[] = [];
@@ -83,15 +83,16 @@ const GameBoard = () => {
     })
     
   }
+  // console.log(socketDetails ? new WebSocket(socketDetails[0]): 'not exist')
   return (
     <div className="flex flex-col items-center justify-center min-h-screen p-4">
       <div className="flex justify-between w-full max-w-4xl mb-6">
-        <PlayerProfile name={`${gamePlayers[0]?.trim() || 'Player1'} ${connected ? '🟢' : '🔴'}`} score={0} />
+        <PlayerProfile name={`${socketDetails && socketDetails[0].name || 'Player1'} ${socketDetails && socketDetails[0].socket.readyState === WebSocket.OPEN ? '🟢' : '🔴'}`} score={0} />
         <div className=" flex justify-end">
           <RollDice onRoll={handleRollDice}  />
 
         </div>
-        <PlayerProfile name={`${gamePlayers[1]?.trim() || 'Player2'} ${connected ? '🟢' : '🔴'}`} score={0} />
+        <PlayerProfile name={`${socketDetails && socketDetails[1].name || 'Player2'} ${socketDetails && socketDetails[1].socket.readyState === WebSocket.OPEN ? '🟢' : '🔴'}`} score={0} />
       </div>
       <h1 className="text-3xl font-bold mb-6">Snakes and Ladders</h1>
       <div className="grid grid-cols-10 gap-1 max-w-4xl w-full border-2 border-gray-300 p-2 bg-gray-100 rounded-lg">

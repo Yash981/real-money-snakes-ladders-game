@@ -95,6 +95,9 @@ class SocketManager {
     // console.log(userssss,'userrrrsss')
     return userssss.join(" and ");
   }
+  getUserSocketByroomId(roomId:string){
+    return this.interestedSockets.get(roomId)
+  }
 }
 
 export const socketManager = SocketManager.getInstance();
