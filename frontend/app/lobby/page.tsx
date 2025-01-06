@@ -41,7 +41,6 @@ const LobbyPage: React.FC = () => {
         }
     }, [payload, router, seconds])
     
-    console.log('Payload',payload);
     return (
         <div className='bg-gray-100 min-h-screen '>
             <div className="float-end mt-5 mr-5 ">

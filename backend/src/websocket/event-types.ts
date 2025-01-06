@@ -9,7 +9,8 @@ export enum EventTypes{
     GAME_STARTED='GAME_STARTED',
     DICE_RESULTS='DICE_RESULTS',
     INIT_GAME='INIT_GAME',
-    GAME_RESUME='GAME_RESUME'
+    GAME_RESUME='GAME_RESUME',
+    USER_STATUS='USER_STATUS'
     
   };
 export interface ClientMessage {

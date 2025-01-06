@@ -44,6 +44,10 @@ export class GameManager {
             }
             socketManager.addUser(game.gameId, user);
             game.addPlayer(user.name);
+            let status: { name: string; isActive: string }[] = []
+            socketManager.getUserSocketByroomId(game.gameId)?.map((currentUser)=>{
+              status.push(currentUser.socket.readyState === WebSocket.OPEN ? {name:currentUser.name,isActive:'true'}:{name:currentUser.name,isActive:'true'})
+            })
             socketManager.broadcast(
               game.gameId,
               JSON.stringify({
@@ -52,7 +56,10 @@ export class GameManager {
                 gameStarted: socketManager
                   .getPlayerNamesIntheRoom(game.gameId)
                   .split("and"),
-                playersSockets : socketManager.getUserSocketByroomId(game.gameId)
+                playersSockets :socketManager.getUserSocketByroomId(game.gameId)?.map((currentUser)=>{
+                  currentUser.socket.send(JSON.stringify({event:EventTypes.USER_STATUS,status}))
+                })
+                
               })
             );
             const { player1, player2 } =
@@ -284,6 +291,27 @@ export class GameManager {
     if (!user) {
       console.error("User not found?");
       return;
+    }
+    const status:{name:string,isActive:string}[] = []
+    let keyy = ""
+
+    const interestedSockets = socketManager.getInterestedSockets()
+      for (const [key, value] of interestedSockets.entries()) {
+      value.map((valueCurrentUser)=>{
+        if(valueCurrentUser.name === user.name){
+          keyy = key
+          socketManager.getUserSocketByroomId(key)?.map((currentUser)=>{
+            status.push(currentUser.socket.readyState === WebSocket.CLOSED ? {name:currentUser.name,isActive:'false'}:{name:currentUser.name,isActive:'true'})
+          })
+        }
+      })
+    }
+    if(keyy){
+      socketManager.getUserSocketByroomId(keyy)?.map((currentUser)=>{
+        if(currentUser.socket.readyState === WebSocket.OPEN){
+          currentUser.socket.send(JSON.stringify({event:EventTypes.USER_STATUS,status}))
+        }
+      })
     }
     this.users = this.users.filter((user) => user.socket !== socket);
     socketManager.removeUser(user.id);

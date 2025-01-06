@@ -98,6 +98,9 @@ class SocketManager {
   getUserSocketByroomId(roomId:string){
     return this.interestedSockets.get(roomId)
   }
+  getInterestedSockets(){
+    return this.interestedSockets
+  }
 }
 
 export const socketManager = SocketManager.getInstance();
