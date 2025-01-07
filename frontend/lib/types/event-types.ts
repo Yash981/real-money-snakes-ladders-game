@@ -8,11 +8,14 @@ export enum EventTypes{
     ERROR='ERROR',
     GAME_STARTED='GAME_STARTED',
     GAME_ADDED='GAME_ADDED',
-    INIT_GAME='INIT_GAME'
+    INIT_GAME='INIT_GAME',
+    USER_STATUS='USER_STATUS',
+    GAME_WINNER='GAME_WINNER',
+    GAME_LOSSER='GAME_LOSSER'
   };
 export interface ClientMessage {
     event:EventTypes;
-    payload?:{roomId?:string,gameId?:string,abondonedGameId?:string};
+    payload?:{roomId?:string,gameId?:string,abondonedGameId?:string,winner?:string,losser?:string};
 }
 export interface Player{
   userId:string,

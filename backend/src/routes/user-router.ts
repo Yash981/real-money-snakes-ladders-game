@@ -10,6 +10,6 @@ UserRouter.post('/account/deposit',userMiddleware,DepositMoney)
 UserRouter.post('/account/withdraw',userMiddleware,WithdrawMoney)
 UserRouter.get('/user/history',userMiddleware,getHistoryOfGamesPlayed)
 UserRouter.get('/user/balance',userMiddleware,getCurrentBalance)
-UserRouter.get('/logout',userMiddleware,UserLogout)
+UserRouter.post('/logout',UserLogout)
 
 

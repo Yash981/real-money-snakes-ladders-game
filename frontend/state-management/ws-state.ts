@@ -5,29 +5,30 @@ interface rolledDiceDetailsType{
   diceResults:number;
   nextPosition:number;
 }
+interface userStatusType{
+  name:string;
+  isActive:string;
+}
 type WebSocketStore = {
-  socketDetails:any;
-  boardState: any;
-  setboardState: (boardState: any) => void;
+  boardState: any[];
+  setboardState: (boardState: any[]) => void;
   rolledDiceDetails: rolledDiceDetailsType;
   setRolledDiceDetails: (rolledDiceDetails: rolledDiceDetailsType) => void;
   gamePlayers: string[];
   setGamePlayers: (gamePlayers: string[]) => void;
-  setSocketDetails:(socketDetails:any) =>void
-
+  usersStatus:userStatusType[] | null
+  setUsersStatus:(userStatus:userStatusType[])=>void
 };
 
 const useWebSocketStore = create<WebSocketStore>((set) => ({
-  boardState:[],
+  boardState: [],
   setboardState: (boardState) => set({ boardState }),
-  rolledDiceDetails: {username:'',diceResults:0,nextPosition:0},
+  rolledDiceDetails: { username: '', diceResults: 0, nextPosition: 0 },
   setRolledDiceDetails: (rolledDiceDetails) => set({ rolledDiceDetails }),
   gamePlayers: [],
   setGamePlayers: (gamePlayers) => set({ gamePlayers }),
-  socketDetails:null,
-  setSocketDetails(socketDetails) {
-    set({socketDetails})
-  },
+  usersStatus:null,
+  setUsersStatus:(usersStatus) => set({usersStatus})
 }));
 
 export default useWebSocketStore;

@@ -1,10 +1,7 @@
-import GameBoard from "@/components/game-board";
-
-
 export default function Home() {
   return (
     <>
-      <GameBoard/>
+      <h1>Hi, welcome to Snakes & ladders Game</h1>
     </>
   );
 }

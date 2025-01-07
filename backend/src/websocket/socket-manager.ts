@@ -1,5 +1,5 @@
 import { randomUUID } from "crypto";
-import { userJwtClaims } from "./event-types";
+import { userJwtClaims } from "../types/event-types";
 import { WebSocket } from "ws";
 export class User {
   public socket: WebSocket;

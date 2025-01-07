@@ -10,7 +10,9 @@ export enum EventTypes{
     DICE_RESULTS='DICE_RESULTS',
     INIT_GAME='INIT_GAME',
     GAME_RESUME='GAME_RESUME',
-    USER_STATUS='USER_STATUS'
+    USER_STATUS='USER_STATUS',
+    GAME_WINNER='GAME_WINNER',
+    GAME_LOSSER='GAME_LOSSER'
     
   };
 export interface ClientMessage {

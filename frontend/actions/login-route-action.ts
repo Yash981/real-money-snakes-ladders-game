@@ -27,6 +27,8 @@ export const LoginRouteAction = async (
         httpOnly: true,
         path: "/",
         maxAge: 7 * 24 * 60 * 60,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: process.env.NODE_ENV === "production" ? "strict" : "lax", 
       });
     }
     return result;

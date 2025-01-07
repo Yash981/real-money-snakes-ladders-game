@@ -1,5 +1,5 @@
 import { WebSocket } from "ws";
-import { ClientMessage, EventTypes } from "./event-types";
+import { ClientMessage, EventTypes } from "../types/event-types";
 import Game from "./game";
 import { socketManager, User } from "./socket-manager";
 import prisma from "../db/client";
@@ -46,7 +46,7 @@ export class GameManager {
             game.addPlayer(user.name);
             let status: { name: string; isActive: string }[] = []
             socketManager.getUserSocketByroomId(game.gameId)?.map((currentUser)=>{
-              status.push(currentUser.socket.readyState === WebSocket.OPEN ? {name:currentUser.name,isActive:'true'}:{name:currentUser.name,isActive:'true'})
+              status.push(currentUser.socket.readyState === WebSocket.OPEN ? {name:currentUser.name,isActive:'true'}:{name:currentUser.name,isActive:'false'})
             })
             socketManager.broadcast(
               game.gameId,
@@ -57,7 +57,7 @@ export class GameManager {
                   .getPlayerNamesIntheRoom(game.gameId)
                   .split("and"),
                 playersSockets :socketManager.getUserSocketByroomId(game.gameId)?.map((currentUser)=>{
-                  currentUser.socket.send(JSON.stringify({event:EventTypes.USER_STATUS,status}))
+                  currentUser.socket.send(JSON.stringify({event:EventTypes.USER_STATUS,payload:status}))
                 })
                 
               })
@@ -102,13 +102,26 @@ export class GameManager {
             const posy = gameToRoll.rollDice(user.name);
             if (posy !== -1 && typeof posy !== "number") {
               if (posy.nextPosition === 100) {
-                socketManager.broadcast(
-                  gameToRoll.gameId,
+                //winner
+                user.socket.send(
                   JSON.stringify({
-                    event: EventTypes.GAME_FINISHED,
+                    gameId:gameToRoll.gameId,
+                    event: EventTypes.GAME_WINNER,
                     winner: user.name,
                   })
                 );
+                //losser
+                socketManager.getUserSocketByroomId(gameToRoll.gameId)?.map((currentUser)=>{
+                  if(currentUser.name !== user.name){
+                    currentUser.socket.send(
+                      JSON.stringify({
+                        gameId:gameToRoll.gameId,
+                        event: EventTypes.GAME_LOSSER,
+                        losser:currentUser.name
+                      })
+                    )
+                  }
+                })
                 await prisma.$transaction(async (prisma) => {
                   await prisma.game.update({
                     where: {
@@ -144,6 +157,22 @@ export class GameManager {
                         result: "LOSE",
                       },
                   });
+                  await prisma.user.update({
+                    where:{
+                      email:user.name
+                    },
+                    data:{
+                      balance:{increment:100}
+                    }
+                  })
+                  await prisma.user.update({
+                    where:{
+                      email:socketManager.getPlayerNamesIntheRoom(gameToRoll.gameId).split("and").filter((x) => x.trim() !== user.name)[0].trim()
+                    },
+                    data:{
+                      balance:{decrement:100}
+                    }
+                  })
                 }, { timeout: 10000 });
                 socketManager.removeUser(user.id);
                 this.removeGame(gameToRoll.gameId);
@@ -309,7 +338,7 @@ export class GameManager {
     if(keyy){
       socketManager.getUserSocketByroomId(keyy)?.map((currentUser)=>{
         if(currentUser.socket.readyState === WebSocket.OPEN){
-          currentUser.socket.send(JSON.stringify({event:EventTypes.USER_STATUS,status}))
+          currentUser.socket.send(JSON.stringify({event:EventTypes.USER_STATUS,payload:status}))
         }
       })
     }

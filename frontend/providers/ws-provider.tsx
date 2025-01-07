@@ -1,23 +1,27 @@
 "use client"
-import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
+import React, { createContext, useEffect, useRef, useState } from 'react';
 import { EventTypes, ClientMessage } from '../lib/types/event-types';
 import { toast } from 'sonner';
-import GameBoard from '@/components/game-board';
 import useWebSocketStore from '@/state-management/ws-state';
+import { useRouter } from 'next/navigation';
+import useDialogStore from '@/state-management/dialog-state';
 
 interface WebSocketContextType {
   sendMessage: (message: ClientMessage) => void;
   connected: boolean;
   payload: ClientMessage | undefined;
+  ws: WebSocket | null;
 }
 
 export const WebSocketContext = createContext<WebSocketContextType | undefined>(undefined);
 
 export function WebSocketProvider({ children }: { children: React.ReactNode }) {
-  const { setboardState,setRolledDiceDetails,setGamePlayers,setSocketDetails} = useWebSocketStore()
+  const { setboardState,setRolledDiceDetails,setGamePlayers,setUsersStatus,} = useWebSocketStore()
+  const {setOpenDialog} = useDialogStore()
   const ws = useRef<WebSocket | null>(null);
   const [connected, setConnected] = useState(false);
   const [payload, setPayload] = useState<ClientMessage>();
+  const router = useRouter()
   const token = typeof window !== 'undefined' ? localStorage.getItem('wsToken') as string : null;
   
   useEffect(() => {
@@ -26,7 +30,7 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
     }
     ws.current = new WebSocket(`ws://localhost:9000?token=${token}`);
 
-    ws.current.onopen = () => {
+    ws.current.onopen = function (this,event) {
       setConnected(true);
       toast.success('Successfully connected to game server');
     };
@@ -36,7 +40,7 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
       toast.error('Lost connection to game server');
     };
 
-    ws.current.onmessage = (event) => {
+    ws.current.onmessage = function (this,event) {
       const data = JSON.parse(event.data);
       handleWebSocketMessage(data);
     };
@@ -51,8 +55,6 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
     switch (message.event) {
       case EventTypes.GAME_STARTED:
         toast.success("Game Started");
-        if(typeof window !== 'undefined') sessionStorage.setItem('gameId', message.gameId);
-        setSocketDetails(message.playersSockets)
         setGamePlayers(message.gameStarted);
         setPayload({
           event: message.event,
@@ -69,6 +71,20 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
       case EventTypes.GAME_FINISHED:
         toast.info("Game Over");
         break;
+      case EventTypes.GAME_WINNER:
+        setOpenDialog(true)
+        setPayload({
+          event:message.event,
+          payload:message.payload
+        })
+        break;
+      case EventTypes.GAME_LOSSER:
+        setOpenDialog(true)
+        setPayload({
+          event:message.event,
+          payload:message.payload
+        })
+        break;
       case EventTypes.DICE_RESULTS:
         setRolledDiceDetails(message.diceResult);
         break; 
@@ -78,6 +94,13 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
           event: message.event,
           payload:message.playerPositions
         });
+        break;
+      case EventTypes.USER_STATUS:
+        setUsersStatus(message.payload)
+        setPayload({
+          event:message.event,
+          payload:message.payload
+        })
         break;
       case EventTypes.ERROR:
         toast.error(`Error ${message.error}`,);
@@ -93,7 +116,7 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
   };
   console.log(connected, 'connected')
   return (
-    <WebSocketContext.Provider value={{ sendMessage, connected,payload }}>
+    <WebSocketContext.Provider value={{ sendMessage, connected, payload, ws: ws.current }}>
       {children}
     </WebSocketContext.Provider>
   );

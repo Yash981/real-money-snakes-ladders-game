@@ -35,7 +35,7 @@ const LobbyPage: React.FC = () => {
                 }, 1000);
                 return ()=> clearTimeout(timer);
             } else {
-                router.push('/')
+                router.push(`/game/${payload.payload}`)
                 return () => clearTimeout(timer)
             }
         }
@@ -46,7 +46,6 @@ const LobbyPage: React.FC = () => {
             <div className="float-end mt-5 mr-5 ">
                 <Button variant={"default"} onClick={async()=>{
                     await logoutRouteAction();
-                    router.push('/signup');
                 }}><LogOut/>Logout</Button>
             </div>
             <div className="flex flex-col items-center justify-center  bg-gray-100  h-full">

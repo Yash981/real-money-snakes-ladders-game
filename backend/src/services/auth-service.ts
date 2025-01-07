@@ -3,10 +3,10 @@ import jwt from 'jsonwebtoken';
 import url from 'url'
 import { findUserByEmail } from '../models/user-model';
 import { User } from '../websocket/socket-manager';
-import { userJwtClaims } from '../websocket/event-types';
+import { userJwtClaims } from '../types/event-types';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'Yashwanth14';
-const JWT_EXPIRATION = '1d';
+const JWT_EXPIRATION = '7d';
 
 export const hashPassword = async (password: string) => {
   const salt = await bcrypt.genSalt(10);

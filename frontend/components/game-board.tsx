@@ -1,5 +1,5 @@
 "use client"
-import React, { useState } from 'react';
+import React from 'react';
 import { Button } from "@/components/ui/button";
 import { snakesAndLadders } from '@/lib/constants';
 import { useWebSocket } from '@/hooks/use-socket-hook';
@@ -9,6 +9,8 @@ import { toast } from 'sonner';
 import useWebSocketStore from '@/state-management/ws-state';
 import { useTransitionRouter } from 'next-view-transitions';
 import RollDice from './roll-dice';
+import WinnerDialog from './winner-card';
+import LoserDialog from './losser-card';
 interface Square {
   number: number;
   hasSnake?: boolean;
@@ -19,8 +21,8 @@ interface Square {
 
 
 const GameBoard = () => {
-  const { sendMessage, connected } = useWebSocket()
-  const { boardState,rolledDiceDetails,gamePlayers,socketDetails } = useWebSocketStore();
+  const { sendMessage, connected,ws,payload } = useWebSocket()
+  const { boardState,rolledDiceDetails,gamePlayers,usersStatus } = useWebSocketStore();
   const router = useTransitionRouter()
   const createBoard = (): Square[] => {
     const board: Square[] = [];
@@ -54,9 +56,6 @@ const GameBoard = () => {
     const targetPosition = rolledDiceDetails.nextPosition;
     const isPlayer1Here = boardState.map((x: any) => x?.position)[0] === squareNumber;
     const isPlayer2Here = boardState.map((x: any) => x?.position)[1] === squareNumber;
-    if(rolledDiceDetails.nextPosition === 100){
-      toast.success('Game Over')
-    }
     return (
       <>
         {isPlayer1Here && (
@@ -83,16 +82,15 @@ const GameBoard = () => {
     })
     
   }
-  // console.log(socketDetails ? new WebSocket(socketDetails[0]): 'not exist')
   return (
     <div className="flex flex-col items-center justify-center min-h-screen p-4">
       <div className="flex justify-between w-full max-w-4xl mb-6">
-        <PlayerProfile name={`${socketDetails && socketDetails[0].name || 'Player1'} ${socketDetails && socketDetails[0].socket.readyState === WebSocket.OPEN ? '🟢' : '🔴'}`} score={0} />
+        <PlayerProfile name={`${usersStatus ? usersStatus[0]?.name : 'Player1'} ${usersStatus && usersStatus[0]?.isActive === 'true' ? '🟢' : '🔴'}`} score={0} />
         <div className=" flex justify-end">
           <RollDice onRoll={handleRollDice}  />
 
         </div>
-        <PlayerProfile name={`${socketDetails && socketDetails[1].name || 'Player2'} ${socketDetails && socketDetails[1].socket.readyState === WebSocket.OPEN ? '🟢' : '🔴'}`} score={0} />
+        <PlayerProfile name={`${usersStatus ? usersStatus[1]?.name :'Player2'} ${usersStatus && usersStatus[1]?.isActive === 'true' ? '🟢' : '🔴'}`} score={0} />
       </div>
       <h1 className="text-3xl font-bold mb-6">Snakes and Ladders</h1>
       <div className="grid grid-cols-10 gap-1 max-w-4xl w-full border-2 border-gray-300 p-2 bg-gray-100 rounded-lg">
@@ -121,6 +119,8 @@ const GameBoard = () => {
       <div className="flex items-center mt-6 justify-center w-full max-w-4xl">
         <Button className="" variant={"destructive"} onClick={() => {router.push('/lobby');sessionStorage.removeItem('gameId')}}>End Game</Button>
       </div>
+      <WinnerDialog/>
+      <LoserDialog/>
     </div>
   );
 };
