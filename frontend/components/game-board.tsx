@@ -11,6 +11,7 @@ import { useTransitionRouter } from 'next-view-transitions';
 import RollDice from './roll-dice';
 import WinnerDialog from './winner-card';
 import LoserDialog from './losser-card';
+import { usePathname } from 'next/navigation';
 interface Square {
   number: number;
   hasSnake?: boolean;
@@ -21,9 +22,11 @@ interface Square {
 
 
 const GameBoard = () => {
-  const { sendMessage, connected,ws,payload } = useWebSocket()
-  const { boardState,rolledDiceDetails,gamePlayers,usersStatus } = useWebSocketStore();
+  const { sendMessage } = useWebSocket()
+  const { boardState, usersStatus } = useWebSocketStore();
   const router = useTransitionRouter()
+  const pathname = usePathname()
+
   const createBoard = (): Square[] => {
     const board: Square[] = [];
     for (let i = 100; i >= 1; i--) {
@@ -50,10 +53,10 @@ const GameBoard = () => {
     return 'bg-white hover:bg-gray-100';
   };
   const renderPawn = (squareNumber: number) => {
-    const currentPlayer = rolledDiceDetails.username;
-    const diceResult = rolledDiceDetails.diceResults;
-    const currentPosition = rolledDiceDetails.nextPosition - diceResult;
-    const targetPosition = rolledDiceDetails.nextPosition;
+    // const currentPlayer = rolledDiceDetails.username;
+    // const diceResult = rolledDiceDetails.diceResults;
+    // const currentPosition = rolledDiceDetails.nextPosition - diceResult;
+    // const targetPosition = rolledDiceDetails.nextPosition;
     const isPlayer1Here = boardState.map((x: any) => x?.position)[0] === squareNumber;
     const isPlayer2Here = boardState.map((x: any) => x?.position)[1] === squareNumber;
     return (
@@ -67,9 +70,8 @@ const GameBoard = () => {
       </>
     );
   };
-  
   const handleRollDice = () => {
-    const gameId = sessionStorage.getItem('gameId');
+    const gameId = pathname.split('/').slice(-1)[0]
     if (!gameId) {
       toast.error('Game not started');
       return;
@@ -80,47 +82,57 @@ const GameBoard = () => {
         gameId
       }
     })
-    
+
   }
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen p-4">
-      <div className="flex justify-between w-full max-w-4xl mb-6">
-        <PlayerProfile name={`${usersStatus ? usersStatus[0]?.name : 'Player1'} ${usersStatus && usersStatus[0]?.isActive === 'true' ? '🟢' : '🔴'}`} score={0} />
-        <div className=" flex justify-end">
-          <RollDice onRoll={handleRollDice}  />
-
+    <div className="flex justify-center items-center min-h-screen min-w-screen">
+      <div className="flex flex-col items-center justify-center h-full w-3/12">
+      <RollDice onRoll={handleRollDice}  />
+        <PlayerProfile
+          name={`${usersStatus ? usersStatus[0]?.name : "Player 1"
+            } ${usersStatus && usersStatus[0]?.isActive === "true" ? "🟢" : "🔴"}`}
+          score={0}
+        />
+      </div>
+      {/* <h1 className="text-3xl font-bold mb-6">Snakes and Ladders</h1> */}
+      <div className="flex mx-auto w-3/5 h-full">
+        <div className="grid grid-cols-10 gap-1 max-w-3xl w-full border-2 border-gray-300 p-2 bg-gray-100 rounded-lg">
+          {board.map((square) => (
+            <div
+              key={square.number}
+              className={`aspect-square flex items-center justify-center p-1 border border-gray-300 rounded ${getSquareColor(
+                square
+              )} relative`}
+            >
+              {renderPawn(square.number)}
+              <span className="text-sm font-semibold">{square.number}</span>
+              {square.hasSnake && (
+                <div className="absolute top-0 right-0">
+                  <span className="text-xs text-red-600">→{square.snakeEnd}</span>
+                </div>
+              )}
+              {square.hasLadder && (
+                <div className="absolute top-0 right-0">
+                  <span className="text-xs text-green-600">→{square.ladderEnd}</span>
+                </div>
+              )}
+            </div>
+          ))}
         </div>
-        <PlayerProfile name={`${usersStatus ? usersStatus[1]?.name :'Player2'} ${usersStatus && usersStatus[1]?.isActive === 'true' ? '🟢' : '🔴'}`} score={0} />
       </div>
-      <h1 className="text-3xl font-bold mb-6">Snakes and Ladders</h1>
-      <div className="grid grid-cols-10 gap-1 max-w-4xl w-full border-2 border-gray-300 p-2 bg-gray-100 rounded-lg">
-        {board.map((square) => (
-          <div
-            key={square.number}
-            className={`aspect-square flex items-center justify-center p-1 border border-gray-300 rounded ${getSquareColor(
-              square
-            )} relative`}
-          >
-            {renderPawn(square.number)}
-            <span className="text-sm font-semibold">{square.number}</span>
-            {square.hasSnake && (
-              <div className="absolute top-0 right-0">
-                <span className="text-xs text-red-600">→{square.snakeEnd}</span>
-              </div>
-            )}
-            {square.hasLadder && (
-              <div className="absolute top-0 right-0">
-                <span className="text-xs text-green-600">→{square.ladderEnd}</span>
-              </div>
-            )}
-          </div>
-        ))}
+      <div className="flex flex-col items-center justify-around h-full w-3/12">
+        <div className="flex items-center mt-6 justify-center w-full max-w-4xl m-2">
+          <Button className="" variant={"destructive"} onClick={() => { router.push('/lobby'); sessionStorage.removeItem('gameId') }}>End Game</Button>
+        </div>
+        <PlayerProfile
+          name={`${usersStatus ? usersStatus[1]?.name : "Player 2"
+            } ${usersStatus && usersStatus[1]?.isActive === "true" ? "🟢" : "🔴"}`}
+          score={0}
+        />
       </div>
-      <div className="flex items-center mt-6 justify-center w-full max-w-4xl">
-        <Button className="" variant={"destructive"} onClick={() => {router.push('/lobby');sessionStorage.removeItem('gameId')}}>End Game</Button>
-      </div>
-      <WinnerDialog/>
-      <LoserDialog/>
+      <WinnerDialog />
+      <LoserDialog />
+
     </div>
   );
 };

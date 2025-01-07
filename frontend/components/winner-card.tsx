@@ -34,7 +34,7 @@ const WinnerDialog = () => {
                         <DialogDescription className="text-center text-lg mt-2">
                             Congratulations,{" "}
                             <span className="font-semibold">
-                                {payload.payload?.winner}
+                                {payload.payload as string}
                             </span>!
                         </DialogDescription>
                     </DialogHeader>

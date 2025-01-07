@@ -10,7 +10,16 @@ export const userMiddleware = (req:Request,res:Response,next:NextFunction) =>{
         return;
     }
     try {
-        const decoded = jwt.verify(token as string,process.env.JWT_SECRET as string) as { email: string}
+        const decoded = jwt.verify(token as string,process.env.JWT_SECRET as string) as { email: string, exp?: number }
+        
+        const sevenDays = 7 * 24 * 60 * 60 * 1000; // 7 days in milliseconds
+        if (decoded.exp && (Date.now() >= decoded.exp * 1000 || Date.now() - decoded.exp * 1000 > sevenDays)) {
+            res.status(401).json({
+                message: 'Token has expired'
+            })
+            return;
+        }
+
         console.log(decoded,'decodedd')
         //@ts-ignore
         req.user = {email:decoded.userId};

@@ -75,14 +75,14 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
         setOpenDialog(true)
         setPayload({
           event:message.event,
-          payload:message.payload
+          payload:message.winner
         })
         break;
       case EventTypes.GAME_LOSSER:
         setOpenDialog(true)
         setPayload({
           event:message.event,
-          payload:message.payload
+          payload:message.losser
         })
         break;
       case EventTypes.DICE_RESULTS:

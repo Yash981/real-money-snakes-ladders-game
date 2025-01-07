@@ -20,15 +20,18 @@ const DemoUserSVG = () => (
 );
 
 const PlayerProfile: React.FC<PlayerProfileProps> = ({ name, score }) => {
-    return (
+  return (
+    <div className='flex justify-center flex-col items-center'>
       <div className="flex items-center gap-4 p-4 border rounded-lg bg-gray-50 shadow-sm">
         <DemoUserSVG />
         <div>
           <p className="text-lg font-semibold">{name}</p>
         </div>
       </div>
-    );
-  };
-  
+      <span className='w-16 h-16 m-2 border-2 flex justify-center items-center'>{score}</span>
+    </div>
+  );
+};
+
 export default PlayerProfile;
 

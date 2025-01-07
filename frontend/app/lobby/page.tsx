@@ -7,17 +7,16 @@ import useWebSocketStore from '@/state-management/ws-state';
 import { LogOut } from 'lucide-react';
 import { useTransitionRouter } from 'next-view-transitions';
 import React, { useEffect, useState } from 'react';
-import { set } from 'zod';
 
 const LobbyPage: React.FC = () => {
-    const [playnow, setPlayNow] = useState(false);
+    const [playnow, setPlayNow] = useState<boolean | null>(true);
     const { sendMessage,connected,payload} = useWebSocket();
-    const [seconds, setSeconds] = useState(10);
+    const [seconds, setSeconds] = useState(5);
     const router = useTransitionRouter();
     const handleCreateGame = () => {
         console.log('Create Game',connected);
         if(connected){
-            setPlayNow(true);
+            setPlayNow(false)
             sendMessage({
                 event: EventTypes.INIT_GAME,
             });
@@ -27,7 +26,7 @@ const LobbyPage: React.FC = () => {
     };
     useEffect(() => {
         if(payload && payload.event === EventTypes.GAME_STARTED){
-            setPlayNow(false);
+            setPlayNow(null)
             let timer:any;
             if(seconds > 0){
                 timer = setTimeout(() => {
@@ -51,13 +50,12 @@ const LobbyPage: React.FC = () => {
             <div className="flex flex-col items-center justify-center  bg-gray-100  h-full">
             <h1 className="text-4xl font-bold mb-8">Snakes & Ladders</h1>
             <div className="flex flex-col items-center space-y-4">
-                {!playnow &&<button
+                {playnow ===true  ? (<button
                     onClick={handleCreateGame}
                     className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-700"
                 >
                     Play Now
-                </button>}
-                {playnow && (
+                </button>): ( playnow === false &&
 
                         <div className="flex flex-col items-center space-y-4">
                             <h2 className="text-2xl font-bold">Waiting for other player...</h2>
@@ -76,7 +74,6 @@ const LobbyPage: React.FC = () => {
                             Game Starting in {seconds} second{seconds !== 1 ? "s" : "..."}
                             </h2>
                             <button
-                                onClick={() => setPlayNow(false)}
                                 className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-700"
                             >
                                 Cancel

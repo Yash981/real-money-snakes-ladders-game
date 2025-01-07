@@ -32,7 +32,7 @@ export default function RootLayout({
         >
         <WebSocketProvider>
 
-        <Toaster position="top-center" expand richColors/>
+        <Toaster position="top-center" richColors/>
 
         {children}
         </WebSocketProvider>

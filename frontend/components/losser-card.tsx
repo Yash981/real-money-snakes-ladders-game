@@ -26,7 +26,7 @@ const LoserDialog = () => {
                         😞 Better Luck Next Time! 😞
                     </DialogTitle>
                     <DialogDescription className="text-center text-gray-600">
-                        You gave it your best shot, <span className="font-semibold">{payload?.payload?.losser}</span>! Keep trying, and you might win the next one!
+                        You gave it your best shot, <span className="font-semibold">{payload?.payload as string}</span>! Keep trying, and you might win the next one!
                     </DialogDescription>
                 </DialogHeader>
             </DialogContent>
