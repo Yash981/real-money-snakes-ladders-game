@@ -2,6 +2,7 @@ import { EventTypes } from '@/lib/types/event-types';
 import { create }  from 'zustand';
 interface rolledDiceDetailsType{
   username:string;
+  currentPosition:number;
   diceResults:number;
   nextPosition:number;
 }
@@ -17,13 +18,13 @@ type WebSocketStore = {
   gamePlayers: string[];
   setGamePlayers: (gamePlayers: string[]) => void;
   usersStatus:userStatusType[] | null
-  setUsersStatus:(userStatus:userStatusType[])=>void
+  setUsersStatus:(userStatus:userStatusType[] | null)=>void
 };
 
 const useWebSocketStore = create<WebSocketStore>((set) => ({
   boardState: [],
   setboardState: (boardState) => set({ boardState }),
-  rolledDiceDetails: { username: '', diceResults: 0, nextPosition: 0 },
+  rolledDiceDetails: { username: '',currentPosition:0, diceResults: 0, nextPosition: 0 },
   setRolledDiceDetails: (rolledDiceDetails) => set({ rolledDiceDetails }),
   gamePlayers: [],
   setGamePlayers: (gamePlayers) => set({ gamePlayers }),

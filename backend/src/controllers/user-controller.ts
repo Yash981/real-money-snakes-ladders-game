@@ -181,3 +181,26 @@ export const UserLogout = async (req: Request, res: Response) => {
       res.status(500).json({error:"Error logging out"})
   }
 }
+export const verifyGameId = async(req:Request,res:Response) =>{
+  const gameId = req.params.gameId
+  try {
+    const existingGame  = await prisma.game.findFirst({
+      where:{
+        gameId:gameId,
+        OR:[
+          {player1Id:req.user?.email},
+          {player2Id:req.user?.email}
+        ]
+      },
+    })
+    if(!existingGame){
+      res.status(400).json({ message:"Invalid Game ID"})
+      return;
+    }
+    res.status(200).json({ message: "Game ID verified successfully" })
+    return;
+  } catch (error) {
+    res.status(500).json({ error:"Internal Server Error"})
+    return;
+  }
+}

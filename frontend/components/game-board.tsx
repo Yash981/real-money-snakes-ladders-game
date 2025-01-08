@@ -23,7 +23,7 @@ interface Square {
 
 const GameBoard = () => {
   const { sendMessage } = useWebSocket()
-  const { boardState, usersStatus } = useWebSocketStore();
+  const { boardState, usersStatus,rolledDiceDetails } = useWebSocketStore();
   const router = useTransitionRouter()
   const pathname = usePathname()
 
@@ -91,13 +91,21 @@ const GameBoard = () => {
         <PlayerProfile
           name={`${usersStatus ? usersStatus[0]?.name : "Player 1"
             } ${usersStatus && usersStatus[0]?.isActive === "true" ? "🟢" : "🔴"}`}
-          score={0}
+          score={usersStatus && usersStatus[0]?.name === rolledDiceDetails.username ? rolledDiceDetails.nextPosition:boardState.map((x: any) => x?.position)[0]}
+          backgroundColor={`${
+            usersStatus && usersStatus[0]?.isActive === "true"
+              ? "text-white bg-blue-500"
+              : "text-white bg-gray-400"
+          }`}
+    
         />
       </div>
       {/* <h1 className="text-3xl font-bold mb-6">Snakes and Ladders</h1> */}
       <div className="flex mx-auto w-3/5 h-full">
         <div className="grid grid-cols-10 gap-1 max-w-3xl w-full border-2 border-gray-300 p-2 bg-gray-100 rounded-lg">
-          {board.map((square) => (
+          {board.map((square) => {
+            // console.log(square,'square rendering',rolledDiceDetails.username,rolledDiceDetails.currentPosition,rolledDiceDetails.diceResults,rolledDiceDetails.nextPosition)
+            return (
             <div
               key={square.number}
               className={`aspect-square flex items-center justify-center p-1 border border-gray-300 rounded ${getSquareColor(
@@ -117,7 +125,7 @@ const GameBoard = () => {
                 </div>
               )}
             </div>
-          ))}
+          )})}
         </div>
       </div>
       <div className="flex flex-col items-center justify-around h-full w-3/12">
@@ -127,7 +135,12 @@ const GameBoard = () => {
         <PlayerProfile
           name={`${usersStatus ? usersStatus[1]?.name : "Player 2"
             } ${usersStatus && usersStatus[1]?.isActive === "true" ? "🟢" : "🔴"}`}
-          score={0}
+          score={usersStatus && usersStatus[1]?.name === rolledDiceDetails.username ? rolledDiceDetails.nextPosition : boardState.map((x: any) => x?.position)[1]}
+          backgroundColor={`${
+            usersStatus && usersStatus[1]?.isActive === "true"
+              ? "text-white bg-red-500"
+              : "text-white bg-gray-400"
+          }`}
         />
       </div>
       <WinnerDialog />

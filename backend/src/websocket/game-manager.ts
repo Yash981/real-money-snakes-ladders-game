@@ -321,7 +321,7 @@ export class GameManager {
       console.error("User not found?");
       return;
     }
-    const status:{name:string,isActive:string}[] = []
+    const currentStatus:{name:string,isActive:string}[] = []
     let keyy = ""
 
     const interestedSockets = socketManager.getInterestedSockets()
@@ -330,15 +330,17 @@ export class GameManager {
         if(valueCurrentUser.name === user.name){
           keyy = key
           socketManager.getUserSocketByroomId(key)?.map((currentUser)=>{
-            status.push(currentUser.socket.readyState === WebSocket.CLOSED ? {name:currentUser.name,isActive:'false'}:{name:currentUser.name,isActive:'true'})
+            currentStatus.push(currentUser.socket.readyState === WebSocket.CLOSED ? {name:currentUser.name,isActive:'false'}:{name:currentUser.name,isActive:'true'})
           })
+          return;
         }
       })
     }
+    console.log(currentStatus,'status')
     if(keyy){
       socketManager.getUserSocketByroomId(keyy)?.map((currentUser)=>{
         if(currentUser.socket.readyState === WebSocket.OPEN){
-          currentUser.socket.send(JSON.stringify({event:EventTypes.USER_STATUS,payload:status}))
+          currentUser.socket.send(JSON.stringify({event:EventTypes.USER_STATUS,payload:currentStatus}))
         }
       })
     }

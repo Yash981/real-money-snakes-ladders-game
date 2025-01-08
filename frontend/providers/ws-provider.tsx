@@ -96,6 +96,7 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
         });
         break;
       case EventTypes.USER_STATUS:
+        setUsersStatus(null)
         setUsersStatus(message.payload)
         setPayload({
           event:message.event,

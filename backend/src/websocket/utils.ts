@@ -17,9 +17,9 @@ export const movePlayer = (currentPosition: number, board: number[]) => {
     const diceRoll = Math.floor(Math.random() * 6) + 1;
     let newPosition = currentPosition + diceRoll;
     if (newPosition > BOARD_SIZE) {
-      return {diceRoll,newPosition: board[currentPosition-1]};
+      return {currentPosition,diceRoll,newPosition: board[currentPosition-1]};
     }
   
     console.log(createBoard())
-    return {diceRoll,newPosition: board[newPosition-1]};
+    return {currentPosition,diceRoll,newPosition: board[newPosition-1]};
   };
