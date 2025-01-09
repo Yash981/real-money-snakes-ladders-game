@@ -138,16 +138,19 @@ export const getHistoryOfGamesPlayed = async (req: Request, res: Response) => {
     res.status(400).json({ message: "User email is required" });
     return;
   }
-  const getUser = await findUserByEmail(req.user.email);
-  if (!getUser) {
-    res.status(400).json({ message: "User not found" });
-    return;
-  }
-  const TotalGamesPlayed = await getAllGamesPlayedByUser({ id: getUser.id });
+  const TotalGamesPlayed = await getAllGamesPlayedByUser({ email: req.user.email });
+  const customizeGamesPlayed = TotalGamesPlayed.map(game=>({
+    datetime:game.createdAt,
+    gameId: game.gameId,
+    email: game.userId,
+    opponent: game.game.player1Id === req.user?.email ? game.game.player2Id : game.game.player1Id,
+    result: game.result,
+    betamount:game.moneyChange
 
+  }))
   res.status(200).json({
     message: "History of Games Played",
-    TotalGamesPlayed,
+    userHistory:customizeGamesPlayed,
   })
 
 }

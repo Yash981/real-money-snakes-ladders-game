@@ -12,6 +12,8 @@ import RollDice from './roll-dice';
 import WinnerDialog from './winner-card';
 import LoserDialog from './losser-card';
 import { usePathname } from 'next/navigation';
+import SnakeSvg from './snake-svg';
+import LadderSvg from './ladder-svg';
 interface Square {
   number: number;
   hasSnake?: boolean;
@@ -44,11 +46,13 @@ const GameBoard = () => {
       board.push(square);
 
     }
-    return board.reverse();
+    return board
   };
   const board = createBoard();
   const getSquareColor = (square: Square) => {
-    if (square.hasSnake) return 'bg-red-200 hover:bg-red-300';
+    if (square.hasSnake) {
+      return 'bg-red-200 hover:bg-red-300';
+    }
     if (square.hasLadder) return 'bg-green-200 hover:bg-green-300';
     return 'bg-white hover:bg-gray-100';
   };
@@ -145,7 +149,7 @@ const GameBoard = () => {
       </div>
       <WinnerDialog />
       <LoserDialog />
-
+        {/* <LadderSvg/> */}
     </div>
   );
 };

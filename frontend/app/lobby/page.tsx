@@ -7,6 +7,7 @@ import useWebSocketStore from '@/state-management/ws-state';
 import { LogOut } from 'lucide-react';
 import { useTransitionRouter } from 'next-view-transitions';
 import React, { useEffect, useState } from 'react';
+import { toast } from 'sonner';
 
 const LobbyPage: React.FC = () => {
     const [playnow, setPlayNow] = useState<boolean | null>(true);
@@ -21,7 +22,8 @@ const LobbyPage: React.FC = () => {
                 event: EventTypes.INIT_GAME,
             });
         } else {
-            console.log('Not connected to websocket');
+            toast.error('Not connected to websocket.Try refreshing the page')
+            // console.log('Not connected to websocket');
         }
     };
     useEffect(() => {

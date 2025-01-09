@@ -20,7 +20,6 @@ export const userMiddleware = (req:Request,res:Response,next:NextFunction) =>{
             return;
         }
 
-        console.log(decoded,'decodedd')
         //@ts-ignore
         req.user = {email:decoded.userId};
         next()

@@ -35,17 +35,27 @@ export const WithdrawMoneyByUserId = async(email:string,{amount}:AmountTypeData)
         }
     })
 }
-export const getAllGamesPlayedByUser = async(getUser:{id:string}) =>{
+export const getAllGamesPlayedByUser = async(getUser:{email:string}) =>{
     return await prisma.gameHistory.findMany({
         where: {
-          userId: getUser?.id,
+          userId: getUser?.email,
         },
         include:{
           user:{
             select:{
               email:true
             }
+          },
+          game:{
+            select:{
+                player1Id:true,
+                player2Id:true
+            }
           }
+        },
+        orderBy:{
+            createdAt:'desc'
         }
+        
       })
 }
