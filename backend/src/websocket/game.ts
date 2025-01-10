@@ -27,7 +27,7 @@ class Game {
         console.log(`Player added: ${playerId}, Position: ${this.players[playerId]} ${JSON.stringify(this.players)}`);
 
     }
-    setJoinedUserDetails(gameId:string){
+    setJoinedUserGameId(gameId:string){
         this.gameId = gameId
     }
     rollDice(playerId: string): {currentPosition:number,diceResults:number,nextPosition:number} | number {

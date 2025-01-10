@@ -289,7 +289,7 @@ export class GameManager {
               gameId:gameIdToJoin
             }
           })
-          console.log(JSON.stringify(gamePlayerPositions))
+          // console.log(JSON.stringify(gamePlayerPositions))
           const JoinGame = new Game();
           JoinGame.addPlayer(gamePlayerPositions?.player1Id as string,
             //@ts-ignore
@@ -297,7 +297,7 @@ export class GameManager {
           JoinGame.addPlayer(gamePlayerPositions?.player2Id as string,
           //@ts-ignore
           gamePlayerPositions?.state?.player2Position)
-          JoinGame.setJoinedUserDetails(gameIdToJoin)
+          JoinGame.setJoinedUserGameId(gameIdToJoin)
           this.games.push(JoinGame)
           socketManager.addUser(gameIdToJoin,user)
           socketManager.broadcast(gameIdToJoin,

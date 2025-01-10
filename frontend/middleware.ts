@@ -14,6 +14,7 @@ export function middleware(request: NextRequest) {
   if (!isPublicPath && !token) {
     return NextResponse.redirect(new URL('/signup', request.url))
   }
+  return NextResponse.next()
 }
 
 export const config = {
