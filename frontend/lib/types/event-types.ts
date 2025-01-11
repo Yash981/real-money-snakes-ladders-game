@@ -11,7 +11,8 @@ export enum EventTypes{
     INIT_GAME='INIT_GAME',
     USER_STATUS='USER_STATUS',
     GAME_WINNER='GAME_WINNER',
-    GAME_LOSSER='GAME_LOSSER'
+    GAME_LOSSER='GAME_LOSSER',
+    GAME_RESUME='GAME_RESUME'
   };
 export interface ClientMessage {
     event:EventTypes;

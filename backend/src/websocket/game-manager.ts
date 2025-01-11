@@ -32,7 +32,7 @@ export class GameManager {
             const connectingUrself = Object.keys(game.getPlayers()).find(
               (x) => x === user.name
             );
-            console.log(connectingUrself, "connectingUrself");
+            // console.log(connectingUrself, "connectingUrself");
             if (connectingUrself) {
               user.socket.send(
                 JSON.stringify({
@@ -44,10 +44,16 @@ export class GameManager {
             }
             socketManager.addUser(game.gameId, user);
             game.addPlayer(user.name);
-            let status: { name: string; isActive: string }[] = []
-            socketManager.getUserSocketByroomId(game.gameId)?.map((currentUser)=>{
-              status.push(currentUser.socket.readyState === WebSocket.OPEN ? {name:currentUser.name,isActive:'true'}:{name:currentUser.name,isActive:'false'})
-            })
+            let status: { name: string; isActive: string }[] = [];
+            socketManager
+              .getUserSocketByroomId(game.gameId)
+              ?.map((currentUser) => {
+                status.push(
+                  currentUser.socket.readyState === WebSocket.OPEN
+                    ? { name: currentUser.name, isActive: "true" }
+                    : { name: currentUser.name, isActive: "false" }
+                );
+              });
             socketManager.broadcast(
               game.gameId,
               JSON.stringify({
@@ -56,10 +62,16 @@ export class GameManager {
                 gameStarted: socketManager
                   .getPlayerNamesIntheRoom(game.gameId)
                   .split("and"),
-                playersSockets :socketManager.getUserSocketByroomId(game.gameId)?.map((currentUser)=>{
-                  currentUser.socket.send(JSON.stringify({event:EventTypes.USER_STATUS,payload:status}))
-                })
-                
+                playersSockets: socketManager
+                  .getUserSocketByroomId(game.gameId)
+                  ?.map((currentUser) => {
+                    currentUser.socket.send(
+                      JSON.stringify({
+                        event: EventTypes.USER_STATUS,
+                        payload: status,
+                      })
+                    );
+                  }),
               })
             );
             const { player1, player2 } =
@@ -105,75 +117,90 @@ export class GameManager {
                 //winner
                 user.socket.send(
                   JSON.stringify({
-                    gameId:gameToRoll.gameId,
+                    gameId: gameToRoll.gameId,
                     event: EventTypes.GAME_WINNER,
                     winner: user.name,
                   })
                 );
                 //losser
-                socketManager.getUserSocketByroomId(gameToRoll.gameId)?.map((currentUser)=>{
-                  if(currentUser.name !== user.name){
-                    currentUser.socket.send(
-                      JSON.stringify({
-                        gameId:gameToRoll.gameId,
-                        event: EventTypes.GAME_LOSSER,
-                        losser:currentUser.name
-                      })
-                    )
-                  }
-                })
-                await prisma.$transaction(async (prisma) => {
-                  await prisma.game.update({
-                    where: {
-                      gameId: gameToRoll.gameId,
-                    },
-                    data: {
-                      status: "COMPLETED",
-                      state: {
-                        player1: Object.keys(gameToRoll.getPlayers())[0],
-                        player2: Object.keys(gameToRoll.getPlayers())[1],
-                        player1Position: gameToRoll.getPlayerPosition(Object.keys(gameToRoll.getPlayers())[0]),
-                        player2Position: gameToRoll.getPlayerPosition(Object.keys(gameToRoll.getPlayers())[1]),
-                      },
-                      winner: user.name,
-                    },
+                socketManager
+                  .getUserSocketByroomId(gameToRoll.gameId)
+                  ?.map((currentUser) => {
+                    if (currentUser.name !== user.name) {
+                      currentUser.socket.send(
+                        JSON.stringify({
+                          gameId: gameToRoll.gameId,
+                          event: EventTypes.GAME_LOSSER,
+                          losser: currentUser.name,
+                        })
+                      );
+                    }
                   });
-                  await prisma.gameHistory.create({
-                    data: 
-                      {
+                await prisma.$transaction(
+                  async (prisma) => {
+                    await prisma.game.update({
+                      where: {
+                        gameId: gameToRoll.gameId,
+                      },
+                      data: {
+                        status: "COMPLETED",
+                        state: {
+                          player1: Object.keys(gameToRoll.getPlayers())[0],
+                          player2: Object.keys(gameToRoll.getPlayers())[1],
+                          player1Position: gameToRoll.getPlayerPosition(
+                            Object.keys(gameToRoll.getPlayers())[0]
+                          ),
+                          player2Position: gameToRoll.getPlayerPosition(
+                            Object.keys(gameToRoll.getPlayers())[1]
+                          ),
+                        },
+                        winner: user.name,
+                      },
+                    });
+                    await prisma.gameHistory.create({
+                      data: {
                         gameId: gameToRoll.gameId,
                         userId: user.name,
                         moneyChange: 100,
                         result: "WIN",
-                      }
-                  })
-                  
-                  await prisma.gameHistory.create({
-                    data:
-                      {
+                      },
+                    });
+
+                    await prisma.gameHistory.create({
+                      data: {
                         gameId: gameToRoll.gameId,
-                        userId: socketManager.getPlayerNamesIntheRoom(gameToRoll.gameId).split("and").filter((x) => x.trim() !== user.name)[0].trim(),
+                        userId: socketManager
+                          .getPlayerNamesIntheRoom(gameToRoll.gameId)
+                          .split("and")
+                          .filter((x) => x.trim() !== user.name)[0]
+                          .trim(),
                         moneyChange: -100,
                         result: "LOSE",
                       },
-                  });
-                  await prisma.user.update({
-                    where:{
-                      email:user.name
-                    },
-                    data:{
-                      balance:{increment:100}
-                    }
-                  })
-                  await prisma.user.update({
-                    where:{
-                      email:socketManager.getPlayerNamesIntheRoom(gameToRoll.gameId).split("and").filter((x) => x.trim() !== user.name)[0].trim()
-                    },
-                    data:{
-                      balance:{decrement:100}
-                    }
-                  })
-                }, { timeout: 10000 });
+                    });
+                    await prisma.user.update({
+                      where: {
+                        email: user.name,
+                      },
+                      data: {
+                        balance: { increment: 100 },
+                      },
+                    });
+                    await prisma.user.update({
+                      where: {
+                        email: socketManager
+                          .getPlayerNamesIntheRoom(gameToRoll.gameId)
+                          .split("and")
+                          .filter((x) => x.trim() !== user.name)[0]
+                          .trim(),
+                      },
+                      data: {
+                        balance: { decrement: 100 },
+                      },
+                    });
+                  },
+                  { timeout: 10000 }
+                );
                 socketManager.removeUser(user.id);
                 this.removeGame(gameToRoll.gameId);
                 return;
@@ -200,22 +227,26 @@ export class GameManager {
                   ),
                 })
               );
-              console.log(Object.keys(gameToRoll.getPlayers()),'before db call')
+              
               //db call
               await prisma.game.update({
-                where:{
-                  gameId:gameToRoll.gameId
+                where: {
+                  gameId: gameToRoll.gameId,
                 },
-                data:{
-                  state:{
-                    player1:Object.keys(gameToRoll.getPlayers())[0],
-                    player2:Object.keys(gameToRoll.getPlayers())[1],
-                    player1Position: gameToRoll.getPlayerPosition(Object.keys(gameToRoll.getPlayers())[0]),
-                    player2Position: gameToRoll.getPlayerPosition(Object.keys(gameToRoll.getPlayers())[1]),
+                data: {
+                  state: {
+                    player1: Object.keys(gameToRoll.getPlayers())[0],
+                    player2: Object.keys(gameToRoll.getPlayers())[1],
+                    player1Position: gameToRoll.getPlayerPosition(
+                      Object.keys(gameToRoll.getPlayers())[0]
+                    ),
+                    player2Position: gameToRoll.getPlayerPosition(
+                      Object.keys(gameToRoll.getPlayers())[1]
+                    ),
                   },
-                  currentTurn:user.name,
-                }
-              })
+                  currentTurn: user.name,
+                },
+              });
             } else {
               user.socket.send(
                 JSON.stringify({
@@ -235,7 +266,7 @@ export class GameManager {
             socketManager.broadcast(
               gameToAbandon.gameId,
               JSON.stringify({
-                type: EventTypes.ABANDON_GAME,
+                event: EventTypes.ABANDON_GAME,
                 gameId: gameToAbandon.gameId,
                 gameAbandoned: `Game has been abandoned by ${user.name}`,
               })
@@ -243,40 +274,71 @@ export class GameManager {
             socketManager.broadcast(
               gameToAbandon.gameId,
               JSON.stringify({
-                type: EventTypes.GAME_FINISHED,
+                event: EventTypes.GAME_WINNER,
                 winner: socketManager
                   .getPlayerNamesIntheRoom(gameToAbandon.gameId)
                   .split("and")
-                  .filter((x) => x.trim() !== user.name)[0],
+                  .filter((x) => x.trim() !== user.name)[0], 
               })
             );
             await prisma.game.update({
-              where:{
-                gameId:gameToAbandon.gameId
+              where: {
+                gameId: gameToAbandon.gameId,
               },
-              data:{
-                status:"COMPLETED",
-                state:{
-                  player1:Object.keys(gameToAbandon.getPlayers())[0],
-                  player2:Object.keys(gameToAbandon.getPlayers())[1],
-                  player1Position: gameToAbandon.getPlayerPosition(Object.keys(gameToAbandon.getPlayers())[0]),
-                  player2Position: gameToAbandon.getPlayerPosition(Object.keys(gameToAbandon.getPlayers())[1]),
+              data: {
+                status: "COMPLETED",
+                state: {
+                  player1: Object.keys(gameToAbandon.getPlayers())[0],
+                  player2: Object.keys(gameToAbandon.getPlayers())[1],
+                  player1Position: gameToAbandon.getPlayerPosition(
+                    Object.keys(gameToAbandon.getPlayers())[0]
+                  ),
+                  player2Position: gameToAbandon.getPlayerPosition(
+                    Object.keys(gameToAbandon.getPlayers())[1]
+                  ),
                 },
-                winner:socketManager.getPlayerNamesIntheRoom(gameToAbandon.gameId).split("and").filter((x) => x.trim() !== user.name)[0].trim(),
-                GameHistory:{
-                  createMany:{
-                    data:[{
-                      userId:user.name,
-                      moneyChange:-100,
-                      result:"LOSE",
-                    },{
-                      userId:socketManager.getPlayerNamesIntheRoom(gameToAbandon.gameId).split("and").filter((x) => x.trim() !== user.name)[0].trim(),
-                      moneyChange:100,
-                      result:"WIN",
-                    }]
-                  }
-                }
+                winner: socketManager
+                  .getPlayerNamesIntheRoom(gameToAbandon.gameId)
+                  .split("and")
+                  .filter((x) => x.trim() !== user.name)[0]
+                  .trim(),
+                GameHistory: {
+                  createMany: {
+                    data: [
+                      {
+                        userId: user.name,
+                        moneyChange: -100,
+                        result: "LOSE",
+                      },
+                      {
+                        userId: socketManager
+                          .getPlayerNamesIntheRoom(gameToAbandon.gameId)
+                          .split("and")
+                          .filter((x) => x.trim() !== user.name)[0]
+                          .trim(),
+                        moneyChange: 100,
+                        result: "WIN",
+                      },
+                    ],
+                  },
+                },
+              },
+            });
+            await prisma.user.update({
+              where:{email:user.name},
+              data:{
+                balance:{decrement:100}
               }
+            })
+            await prisma.user.update({
+              where:{email:socketManager
+                .getPlayerNamesIntheRoom(gameToAbandon.gameId)
+                .split("and")
+                .filter((x) => x.trim() !== user.name)[0]
+                .trim()},
+                data:{
+                  balance:{increment:100}
+                }
             })
             socketManager.removeUser(user.id);
             this.removeGame(gameIdToAbandon);
@@ -285,27 +347,67 @@ export class GameManager {
         case EventTypes.JOIN_GAME:
           const gameIdToJoin = message.payload.gameId as string;
           const gamePlayerPositions = await prisma.game.findUnique({
-            where:{
-              gameId:gameIdToJoin
-            }
-          })
+            where: {
+              gameId: gameIdToJoin,
+            },
+          });
           // console.log(JSON.stringify(gamePlayerPositions))
           const JoinGame = new Game();
-          JoinGame.addPlayer(gamePlayerPositions?.player1Id as string,
+          JoinGame.addPlayer(
+            gamePlayerPositions?.player1Id as string,
             //@ts-ignore
-            gamePlayerPositions?.state?.player1Position as number)
-          JoinGame.addPlayer(gamePlayerPositions?.player2Id as string,
-          //@ts-ignore
-          gamePlayerPositions?.state?.player2Position)
-          JoinGame.setJoinedUserGameId(gameIdToJoin)
-          this.games.push(JoinGame)
-          socketManager.addUser(gameIdToJoin,user)
-          socketManager.broadcast(gameIdToJoin,
+            gamePlayerPositions?.state?.player1Position as number
+          );
+          JoinGame.addPlayer(
+            gamePlayerPositions?.player2Id as string,
+            //@ts-ignore
+            gamePlayerPositions?.state?.player2Position
+          );
+          JoinGame.setJoinedUserGameId(gameIdToJoin);
+          this.games.push(JoinGame);
+          socketManager.addUser(gameIdToJoin, user);
+          let resumeStatus: { name: string; isActive: string }[] = [];
+          socketManager
+            .getUserSocketByroomId(JoinGame.gameId)
+            ?.map((currentUser) => {
+              resumeStatus.push(
+                currentUser.socket.readyState === WebSocket.OPEN
+                  ? { name: currentUser.name, isActive: "true" }
+                  : { name: currentUser.name, isActive: "false" }
+              );
+            });
+          socketManager
+            .getUserSocketByroomId(JoinGame.gameId)
+            ?.map((currentUser) => {
+              currentUser.socket.send(
+                JSON.stringify({
+                  event: EventTypes.USER_STATUS,
+                  payload: resumeStatus,
+                })
+              );
+            });
+          socketManager.broadcast(
+            gameIdToJoin,
             JSON.stringify({
-            event: EventTypes.GAME_RESUME,
-            gameId: gameIdToJoin,
-            playerPositions:gamePlayerPositions?.state
-          }))
+              event: EventTypes.GAME_RESUME,
+              gameId: gameIdToJoin,
+              playerPositions: [
+                {
+                  //@ts-ignore
+                  username:gamePlayerPositions?.state?.player1,
+                                    //@ts-ignore
+                  position:gamePlayerPositions?.state?.player1Position
+                },
+                {
+                                    //@ts-ignore
+                  username:gamePlayerPositions?.state?.player2,
+                                    //@ts-ignore
+                  position:gamePlayerPositions?.state?.player2Position
+
+                }
+              ],
+            })
+          );
           break;
         default:
           return;
@@ -321,34 +423,43 @@ export class GameManager {
       console.error("User not found?");
       return;
     }
-    const currentStatus:{name:string,isActive:string}[] = []
-    let keyy = ""
+    const currentStatus: { name: string; isActive: string }[] = [];
+    let keyy = "";
 
-    const interestedSockets = socketManager.getInterestedSockets()
-      for (const [key, value] of interestedSockets.entries()) {
-      value.map((valueCurrentUser)=>{
-        if(valueCurrentUser.name === user.name){
-          keyy = key
-          socketManager.getUserSocketByroomId(key)?.map((currentUser)=>{
-            currentStatus.push(currentUser.socket.readyState === WebSocket.CLOSED ? {name:currentUser.name,isActive:'false'}:{name:currentUser.name,isActive:'true'})
-          })
+    const interestedSockets = socketManager.getInterestedSockets();
+    for (const [key, value] of interestedSockets.entries()) {
+      value.map((valueCurrentUser) => {
+        if (valueCurrentUser.name === user.name) {
+          keyy = key;
+          socketManager.getUserSocketByroomId(key)?.map((currentUser) => {
+            currentStatus.push(
+              currentUser.socket.readyState === WebSocket.CLOSED
+                ? { name: currentUser.name, isActive: "false" }
+                : { name: currentUser.name, isActive: "true" }
+            );
+          });
           return;
         }
-      })
+      });
     }
-    console.log(currentStatus,'status')
-    if(keyy){
-      socketManager.getUserSocketByroomId(keyy)?.map((currentUser)=>{
-        if(currentUser.socket.readyState === WebSocket.OPEN){
-          currentUser.socket.send(JSON.stringify({event:EventTypes.USER_STATUS,payload:currentStatus}))
+    console.log(currentStatus, "status");
+    if (keyy) {
+      socketManager.getUserSocketByroomId(keyy)?.map((currentUser) => {
+        if (currentUser.socket.readyState === WebSocket.OPEN) {
+          currentUser.socket.send(
+            JSON.stringify({
+              event: EventTypes.USER_STATUS,
+              payload: currentStatus,
+            })
+          );
         }
-      })
+      });
     }
     this.users = this.users.filter((user) => user.socket !== socket);
     socketManager.removeUser(user.id);
   }
   private async getPlayerIds(gameId: string): Promise<{
-    player1: {id: string; email: string; password: string;balance: number};
+    player1: { id: string; email: string; password: string; balance: number };
     player2: { id: string; email: string; password: string; balance: number };
   } | null> {
     const playerEmails = socketManager

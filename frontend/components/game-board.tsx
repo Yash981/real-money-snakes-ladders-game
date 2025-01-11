@@ -1,5 +1,5 @@
 "use client"
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { snakesAndLadders } from '@/lib/constants';
 import { useWebSocket } from '@/hooks/use-socket-hook';
@@ -12,9 +12,8 @@ import RollDice from './roll-dice';
 import WinnerDialog from './winner-card';
 import LoserDialog from './losser-card';
 import { usePathname } from 'next/navigation';
-import SnakeSvg from './snake-svg';
-import LadderSvg from './ladder-svg';
 import PawnSvg from './pawn';
+import AbondonGame from './abondon-game';
 interface Square {
   number: number;
   hasSnake?: boolean;
@@ -101,7 +100,6 @@ const GameBoard = () => {
             ? "text-white bg-blue-500"
             : "text-white bg-gray-400"
             }`}
-
         />
       </div>
       <div className="flex mx-auto w-3/5 h-full">
@@ -132,9 +130,7 @@ const GameBoard = () => {
         </div>
       </div>
       <div className="flex flex-col items-center justify-around h-full w-3/12">
-        <div className="flex items-center mt-6 justify-center w-full max-w-4xl m-2">
-          <Button className="" variant={"destructive"} onClick={() => { router.push('/lobby'); sessionStorage.removeItem('gameId') }}>End Game</Button>
-        </div>
+        <AbondonGame/>
         <PlayerProfile
           name={`${usersStatus ? usersStatus[1]?.name : "Player 2"
             } ${usersStatus && usersStatus[1]?.isActive === "true" ? "🟢" : "🔴"}`}

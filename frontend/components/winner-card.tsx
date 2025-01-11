@@ -24,7 +24,7 @@ const WinnerDialog = () => {
 
     return (
         <>
-            <Confetti width={width} height={height} />
+        <Confetti width={width} height={height} />
             <Dialog open={openDialog} onOpenChange={()=>{setOpenDialog(false);router.push('/lobby')}}>
                 <DialogContent className="bg-white shadow-lg">
                     <DialogHeader>

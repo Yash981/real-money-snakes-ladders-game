@@ -95,6 +95,13 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
           payload:message.playerPositions
         });
         break;
+      case EventTypes.GAME_RESUME:
+        setboardState(message.playerPositions);
+        setPayload({
+          event: message.event,
+          payload:message.playerPositions
+        });
+        break
       case EventTypes.USER_STATUS:
         setUsersStatus(null)
         setUsersStatus(message.payload)
@@ -110,7 +117,6 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
   };
 
   const sendMessage = (message: ClientMessage) => {
-    console.log(message, 'message send message')
     if (ws.current?.readyState === WebSocket.OPEN) {
       ws.current.send(JSON.stringify(message));
     }
