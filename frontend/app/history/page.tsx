@@ -1,4 +1,6 @@
+
 import { getUserHistory } from "@/actions/user-history-route-action";
+import BackButton from "@/components/back-button";
 import { columns } from "@/components/columns";
 import { DataTable } from "@/components/data-table";
 const History = async () => {
@@ -8,7 +10,10 @@ const History = async () => {
     }
     return (
         <>
-            <h1 className="text-center m-4 text-black font-bold mb-0 text-2xl underline">User History</h1>
+        <div className="flex ml-16 mt-8 justify-between">
+            <BackButton/>
+            <h1 className="text-center text-black font-bold text-2xl underline absolute left-1/2 transform -translate-x-1/2">User History</h1>
+        </div>
             <div className="container mx-auto py-10">
                 <DataTable columns={columns} data={data.message.userHistory} />
             </div>
