@@ -49,7 +49,6 @@ const RollDice = ({ onRoll }: { onRoll: () => void }) => {
       { cx: 16, cy: 16 },
     ],
   };
-  console.log(rolledDiceDetails.diceResults,'rolledDiceDetails')
   return (
     <button
       onClick={handleClick}

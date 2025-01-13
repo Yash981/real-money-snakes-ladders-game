@@ -89,58 +89,67 @@ const GameBoard = () => {
 
   }
   return (
-    <div className="flex justify-center items-center min-h-screen min-w-screen">
-      <div className="flex flex-col items-center justify-center h-full w-3/12">
+    <div className="flex flex-wrap justify-center items-center min-h-screen min-w-screen p-4 space-y-4 lg:space-y-0">
+      <div className="flex flex-col items-center justify-center w-full md:w-1/4 space-y-4">
         <RollDice onRoll={handleRollDice} />
         <PlayerProfile
-          name={`${usersStatus ? usersStatus[0]?.name : "Player 1"
-            } ${usersStatus && usersStatus[0]?.isActive === "true" ? "🟢" : "🔴"}`}
-          score={usersStatus && usersStatus[0]?.name === rolledDiceDetails.username ? rolledDiceDetails.nextPosition : boardState.map((x: any) => x?.position)[0]}
-          backgroundColor={`${usersStatus && usersStatus[0]?.isActive === "true"
-            ? "text-white bg-blue-500"
-            : "text-white bg-gray-400"
-            }`}
+          name={`${usersStatus?.[0]?.name || "Player 1"} ${
+            usersStatus?.[0]?.isActive === "true" ? "🟢" : "🔴"
+          }`}
+          score={
+            usersStatus?.[0]?.name === rolledDiceDetails.username
+              ? rolledDiceDetails.nextPosition
+              : boardState?.[0]?.position
+          }
+          backgroundColor={`${
+            usersStatus?.[0]?.isActive === "true" ? "bg-blue-500" : "bg-gray-400"
+          } text-white`}
         />
       </div>
-      <div className="flex mx-auto w-3/5 h-full">
-        <div className="grid grid-cols-10 gap-1 max-w-3xl w-full border-2 border-gray-300 p-2 bg-gray-100 rounded-lg">
-          {board.map((square) => {
-            return (
-              <div
-                key={square.number}
-                className={`aspect-square flex items-center justify-center p-1 border border-gray-300 rounded ${getSquareColor(
-                  square
-                )} relative`}
-              >
-                {renderPawn(square.number)}
-                <span className="text-sm font-semibold">{square.number}</span>
-                {square.hasSnake && (
-                  <div className="absolute top-0 right-0">
-                    <span className="text-xs text-red-600">→{square.snakeEnd}</span>
-                  </div>
-                )}
-                {square.hasLadder && (
-                  <div className="absolute top-0 right-0">
-                    <span className="text-xs text-green-600">→{square.ladderEnd}</span>
-                  </div>
-                )}
-              </div>
-            )
-          })}
+
+      <div className="flex w-full md:w-2/4 justify-center">
+        <div className="grid grid-cols-10 gap-1 max-w-full w-full border-2 border-gray-300 p-2 bg-gray-100 rounded-lg">
+          {board.map((square) => (
+            <div
+              key={square.number}
+              className={`aspect-square flex items-center justify-center p-1 border border-gray-300 rounded ${getSquareColor(
+                square
+              )} relative`}
+            >
+              {renderPawn(square.number)}
+              <span className="text-xs md:text-sm font-semibold">{square.number}</span>
+              {square.hasSnake && (
+                <div className="absolute top-0 right-0">
+                  <span className="text-xs text-red-600">→{square.snakeEnd}</span>
+                </div>
+              )}
+              {square.hasLadder && (
+                <div className="absolute top-0 right-0">
+                  <span className="text-xs text-green-600">→{square.ladderEnd}</span>
+                </div>
+              )}
+            </div>
+          ))}
         </div>
       </div>
-      <div className="flex flex-col items-center justify-around h-full w-3/12">
-        <AbondonGame/>
+
+      <div className="flex flex-col items-center justify-around w-full md:w-1/4 space-y-4">
+        <AbondonGame />
         <PlayerProfile
-          name={`${usersStatus ? usersStatus[1]?.name : "Player 2"
-            } ${usersStatus && usersStatus[1]?.isActive === "true" ? "🟢" : "🔴"}`}
-          score={usersStatus && usersStatus[1]?.name === rolledDiceDetails.username ? rolledDiceDetails.nextPosition : boardState.map((x: any) => x?.position)[1]}
-          backgroundColor={`${usersStatus && usersStatus[1]?.isActive === "true"
-            ? "text-white bg-red-500"
-            : "text-white bg-gray-400"
-            }`}
+          name={`${usersStatus?.[1]?.name || "Player 2"} ${
+            usersStatus?.[1]?.isActive === "true" ? "🟢" : "🔴"
+          }`}
+          score={
+            usersStatus?.[1]?.name === rolledDiceDetails.username
+              ? rolledDiceDetails.nextPosition
+              : boardState?.[1]?.position
+          }
+          backgroundColor={`${
+            usersStatus?.[1]?.isActive === "true" ? "bg-red-500" : "bg-gray-400"
+          } text-white`}
         />
       </div>
+
       <WinnerDialog />
       <LoserDialog />
     </div>
