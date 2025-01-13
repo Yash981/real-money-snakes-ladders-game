@@ -89,7 +89,7 @@ const GameBoard = () => {
 
   }
   return (
-    <div className="flex flex-wrap justify-center items-center min-h-screen min-w-screen p-4 space-y-4 lg:space-y-0">
+    <div className="flex flex-wrap justify-center items-center min-h-screen min-w-screen  space-y-4 lg:space-y-0">
       <div className="flex flex-col items-center justify-center w-full md:w-1/4 space-y-4">
         <RollDice onRoll={handleRollDice} />
         <PlayerProfile

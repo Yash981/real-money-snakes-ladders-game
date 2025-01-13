@@ -16,7 +16,7 @@ export enum EventTypes{
   };
 export interface ClientMessage {
     event:EventTypes;
-    payload?:{roomId?:string,gameId?:string,abondonedGameId?:string,winner?:string,losser?:string};
+    payload?:{roomId?:string,gameId?:string,abondonedGameId?:string,winner?:string,losser?:string,playerIndex?:number};
 }
 export interface Player{
   userId:string,
