@@ -2,7 +2,7 @@
 import useWebSocketStore from "@/state-management/ws-state";
 import React, { useState } from "react";
 
-const RollDice = ({ onRoll }: { onRoll: () => void }) => {
+const RollDice = ({ onRoll,playerIndex,diceColour }: { onRoll: (playerIndex:number) => void,playerIndex:number,diceColour:string }) => {
   const [isRolling, setIsRolling] = useState(false);
   const {rolledDiceDetails} = useWebSocketStore()
   const handleClick = () => {
@@ -10,7 +10,7 @@ const RollDice = ({ onRoll }: { onRoll: () => void }) => {
 
     setIsRolling(true);
 
-    onRoll();
+    onRoll(playerIndex);
 
     setTimeout(() => {
       setIsRolling(false);
@@ -68,7 +68,7 @@ const RollDice = ({ onRoll }: { onRoll: () => void }) => {
         strokeWidth="2"
         strokeLinecap="round"
         strokeLinejoin="round"
-        className="text-blue-500"
+        className={diceColour}
       >
         <rect x="3" y="3" width="20" height="20" rx="2" ry="2" />
         {diceDots[rolledDiceDetails.diceResults]?.map((dot, index) => (

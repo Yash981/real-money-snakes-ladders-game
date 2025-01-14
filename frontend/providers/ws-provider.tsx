@@ -16,7 +16,7 @@ interface WebSocketContextType {
 export const WebSocketContext = createContext<WebSocketContextType | undefined>(undefined);
 
 export function WebSocketProvider({ children }: { children: React.ReactNode }) {
-  const { setboardState,setRolledDiceDetails,setGamePlayers,setUsersStatus,} = useWebSocketStore()
+  const { setboardState,setRolledDiceDetails,setGamePlayers,setUsersStatus,setPlayerTurnIndex} = useWebSocketStore()
   const {setOpenDialog} = useDialogStore()
   const ws = useRef<WebSocket | null>(null);
   const [connected, setConnected] = useState(false);
@@ -29,7 +29,7 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
       return;
     }
     ws.current = new WebSocket(`ws://localhost:9000?token=${token}`);
-
+    
     ws.current.onopen = function (this,event) {
       setConnected(true);
       toast.success('Successfully connected to game server');
@@ -56,6 +56,7 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
       case EventTypes.GAME_STARTED:
         toast.success("Game Started");
         setGamePlayers(message.gameStarted);
+        setPlayerTurnIndex(message.userPlayerTurnIndex)
         setPayload({
           event: message.event,
           payload:message.gameId
@@ -121,7 +122,6 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
       ws.current.send(JSON.stringify(message));
     }
   };
-  console.log(connected, 'connected')
   return (
     <WebSocketContext.Provider value={{ sendMessage, connected, payload, ws: ws.current }}>
       {children}

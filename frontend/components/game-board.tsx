@@ -1,5 +1,5 @@
 "use client"
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { snakesAndLadders } from '@/lib/constants';
 import { useWebSocket } from '@/hooks/use-socket-hook';
@@ -25,7 +25,7 @@ interface Square {
 
 const GameBoard = () => {
   const { sendMessage } = useWebSocket()
-  const { boardState, usersStatus, rolledDiceDetails } = useWebSocketStore();
+  const { boardState, usersStatus, rolledDiceDetails,playerTurnIndex } = useWebSocketStore();
   const router = useTransitionRouter()
   const pathname = usePathname()
 
@@ -74,7 +74,7 @@ const GameBoard = () => {
       </>
     );
   };
-  const handleRollDice = () => {
+  const handleRollDice = (playerIndex:number) => {
     const gameId = pathname.split('/').slice(-1)[0]
     if (!gameId) {
       toast.error('Game not started');
@@ -83,7 +83,8 @@ const GameBoard = () => {
     sendMessage({
       event: EventTypes.ROLL_DICE,
       payload: {
-        gameId
+        gameId,
+        playerIndex
       }
     })
 
@@ -91,7 +92,7 @@ const GameBoard = () => {
   return (
     <div className="flex flex-wrap justify-center items-center min-h-screen min-w-screen  space-y-4 lg:space-y-0">
       <div className="flex flex-col items-center justify-center w-full md:w-1/4 space-y-4">
-        <RollDice onRoll={handleRollDice} />
+        <RollDice onRoll={handleRollDice}  playerIndex={playerTurnIndex && playerTurnIndex[0]?.turnIndex}  diceColour={"text-blue-500"}/>
         <PlayerProfile
           name={`${usersStatus?.[0]?.name || "Player 1"} ${
             usersStatus?.[0]?.isActive === "true" ? "🟢" : "🔴"
@@ -135,6 +136,7 @@ const GameBoard = () => {
 
       <div className="flex flex-col items-center justify-around w-full md:w-1/4 space-y-4">
         <AbondonGame />
+        <RollDice onRoll={handleRollDice}  playerIndex={playerTurnIndex && playerTurnIndex[1]?.turnIndex}  diceColour={"text-red-500"}/>
         <PlayerProfile
           name={`${usersStatus?.[1]?.name || "Player 2"} ${
             usersStatus?.[1]?.isActive === "true" ? "🟢" : "🔴"

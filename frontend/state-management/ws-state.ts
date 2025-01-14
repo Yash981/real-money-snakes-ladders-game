@@ -6,6 +6,10 @@ interface rolledDiceDetailsType{
   diceResults:number;
   nextPosition:number;
 }
+interface PlayersTurnIndex{
+  username:string,
+  turnIndex:number
+}
 interface userStatusType{
   name:string;
   isActive:string;
@@ -19,6 +23,8 @@ type WebSocketStore = {
   setGamePlayers: (gamePlayers: string[]) => void;
   usersStatus:userStatusType[] | null
   setUsersStatus:(userStatus:userStatusType[] | null)=>void
+  playerTurnIndex:PlayersTurnIndex[]
+  setPlayerTurnIndex:(playerTurnIndex:PlayersTurnIndex[]) => void
 };
 
 const useWebSocketStore = create<WebSocketStore>((set) => ({
@@ -29,7 +35,9 @@ const useWebSocketStore = create<WebSocketStore>((set) => ({
   gamePlayers: [],
   setGamePlayers: (gamePlayers) => set({ gamePlayers }),
   usersStatus:null,
-  setUsersStatus:(usersStatus) => set({usersStatus})
+  setUsersStatus:(usersStatus) => set({usersStatus}),
+  playerTurnIndex:[],
+  setPlayerTurnIndex: (playerTurnIndex) => set({ playerTurnIndex})
 }));
 
 export default useWebSocketStore;

@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { LogOut, History, Loader2, Users, Trophy, Dice1 } from 'lucide-react';
+import { LogOut, History, Loader2, Users, Trophy, Dice1, Dice6Icon, Dice4Icon } from 'lucide-react';
 import { EventTypes } from '@/lib/types/event-types';
 import { logoutRouteAction } from '@/actions/logout-route-action';
 import { useTransitionRouter } from 'next-view-transitions';
@@ -79,7 +79,7 @@ const LobbyPage = () => {
                       className="bg-black hover:bg-gray-800 text-white text-xl px-8 py-8 w-full"
                       onClick={handleCreateGame}
                     >
-                      <Dice1 className="mr-2 h-6 w-6" />
+                      <Dice4Icon className="mr-2 h-6 w-6" />
                       Play Now
                     </Button>
                   )}
@@ -118,7 +118,7 @@ const LobbyPage = () => {
                 </div>
               </div>
 
-              <div className="space-y-8 border-l-2 border-gray-200 pl-12">
+              <div className="space-y-8 md:border-l-2 border-gray-200 md:pl-12 ">
                 <div className="space-y-6">
                   <div className="flex items-center space-x-4">
                     <div className="p-3 bg-gray-100 rounded-full">
@@ -132,7 +132,7 @@ const LobbyPage = () => {
 
                   <div className="flex items-center space-x-4">
                     <div className="p-3 bg-gray-100 rounded-full">
-                      <Dice1 className="h-6 w-6" />
+                      <Dice6Icon className="h-6 w-6" />
                     </div>
                     <div>
                       <h3 className="font-semibold text-lg">Classic Rules</h3>
