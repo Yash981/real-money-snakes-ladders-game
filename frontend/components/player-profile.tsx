@@ -20,10 +20,10 @@ const DemoUserSVG = () => (
   </svg>
 );
 
-const PlayerProfile: React.FC<PlayerProfileProps> = ({ name, score,backgroundColor }) => {
+const PlayerProfile: React.FC<PlayerProfileProps> = ({ name, score,backgroundColor}) => {
   return (
-    <div className='flex justify-center flex-col items-center'>
-      <div className={`flex items-center gap-4 p-4 border rounded-lg ${backgroundColor} shadow-sm`}>
+    <div className={`flex justify-center flex-col items-center`}>
+      <div className={`flex items-center gap-4 p-4 border rounded-lg ${backgroundColor} shadow-sm `}>
         <DemoUserSVG />
         <div>
           <p className="text-lg font-semibold">{name}</p>

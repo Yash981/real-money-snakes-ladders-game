@@ -30,11 +30,7 @@ class Game {
     setJoinedUserGameId(gameId:string){
         this.gameId = gameId
     }
-    rollDice(playerId: string,playerIndex?:number): {currentPosition:number,diceResults:number,nextPosition:number} | number {
-        console.log(playerIndex,this.currentTurn,'turns')
-        if(playerIndex!==this.currentTurn){
-            return -2
-        }
+    rollDice(playerId: string): {currentPosition:number,diceResults:number,nextPosition:number,nextPlayerTurn:number} | number {
         if(playerId !== this.getCurrentTurn()){
             return -1
         }
@@ -43,7 +39,7 @@ class Game {
         this.players[playerId] = nextPos.newPosition
         const nextPlayer = this.nextTurn()
         console.log(`Player ${playerId} moved to position ${nextPos.newPosition}. Next turn: ${nextPlayer}`);
-        return { currentPosition:nextPos.currentPosition,diceResults: nextPos.diceRoll,nextPosition: nextPos.newPosition }
+        return { currentPosition:nextPos.currentPosition,diceResults: nextPos.diceRoll,nextPosition: nextPos.newPosition,nextPlayerTurn:nextPlayer }
 
     }
     getPlayerPosition(playerId: string): number {

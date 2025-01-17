@@ -72,7 +72,7 @@ export class GameManager {
                       })
                     );
                   }),
-                userPlayerTurnIndex:game.getUsernameAndPlayerTurnIndex()
+                nextPlayerTurnIndex:game.getUsernameAndPlayerTurnIndex()[1]
               })
             );
             const { player1, player2 } =
@@ -108,15 +108,13 @@ export class GameManager {
             );
           }
           break;
-        case EventTypes.ROLL_DICE:
-          const gameId = message.payload.gameId;
-          const playerIndex = message.payload.playerIndex;
+        case EventTypes.ROLL_DICE:  
+          const gameId = message.payload.gameId; 
 
           const gameToRoll = this.games.find((x) => x.gameId === gameId);
           if (gameToRoll) {
-            const posy = gameToRoll.rollDice(user.name,playerIndex);
-            console.log(posy,'posy')
-            if (posy !== -1 && posy !== -2 &&  typeof posy !== "number") {
+            const posy = gameToRoll.rollDice(user.name);
+            if (posy !== -1 &&  typeof posy !== "number") {
               if (posy.nextPosition === 100) {
                 //winner
                 user.socket.send(
@@ -251,14 +249,7 @@ export class GameManager {
                   currentTurn: user.name,
                 },
               });
-            } else if(posy === -2 && typeof posy !== "number"){
-              user.socket.send(
-                JSON.stringify({
-                  event:EventTypes.ERROR,
-                  error:"Not Your dice to roll"
-                })
-              )
-            }
+            } 
             else {
               user.socket.send(
                 JSON.stringify({

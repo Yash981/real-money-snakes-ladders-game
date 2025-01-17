@@ -56,7 +56,7 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
       case EventTypes.GAME_STARTED:
         toast.success("Game Started");
         setGamePlayers(message.gameStarted);
-        setPlayerTurnIndex(message.userPlayerTurnIndex)
+        setPlayerTurnIndex(message.nextPlayerTurnIndex.turnIndex)
         setPayload({
           event: message.event,
           payload:message.gameId
@@ -88,6 +88,7 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
         break;
       case EventTypes.DICE_RESULTS:
         setRolledDiceDetails(message.diceResult);
+        setPlayerTurnIndex(message.diceResult.nextPlayerTurn)
         break; 
       case EventTypes.BOARD_STATE:
         setboardState(message.playerPositions);
