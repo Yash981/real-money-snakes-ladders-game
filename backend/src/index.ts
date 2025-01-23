@@ -1,4 +1,4 @@
-import express, { Response } from "express";
+import express from "express";
 import { UserRouter } from "./routes/user-router";
 import dotenv from "dotenv";
 import cookieParser from "cookie-parser";
@@ -7,6 +7,7 @@ import http from "http";
 import cors from "cors";
 dotenv.config();
 const app = express();
+const port = process.env.PORT || 5000
 app.use(cors({ origin: ["http://localhost:3000", "http://localhost:8080"], credentials: true }) );
 app.use(express.json());
 app.use(cookieParser());
@@ -14,7 +15,7 @@ app.use("/api/v1", UserRouter);
 const server = http.createServer(app);
 setupWebSocketServer(server);
 
-server.listen(9000, () => {
+server.listen(port, () => {
   console.log("Server is running on 9000");
 });
 
