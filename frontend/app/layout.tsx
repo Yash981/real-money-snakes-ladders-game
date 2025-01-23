@@ -30,7 +30,7 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased `}
         >
-        <WebSocketProvider>
+        <WebSocketProvider backendUrl={process.env.BACKEND_URL as string}>
 
         <Toaster position="top-center" richColors/>
 

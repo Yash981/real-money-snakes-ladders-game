@@ -15,7 +15,7 @@ interface WebSocketContextType {
 
 export const WebSocketContext = createContext<WebSocketContextType | undefined>(undefined);
 
-export function WebSocketProvider({ children }: { children: React.ReactNode }) {
+export function WebSocketProvider({ backendUrl,children }: { backendUrl:string,children: React.ReactNode }) {
   const { setboardState,setRolledDiceDetails,setGamePlayers,setUsersStatus,setPlayerTurnIndex} = useWebSocketStore()
   const {setOpenDialog} = useDialogStore()
   const ws = useRef<WebSocket | null>(null);
@@ -23,12 +23,11 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
   const [payload, setPayload] = useState<ClientMessage>();
   const router = useRouter()
   const token = typeof window !== 'undefined' ? localStorage.getItem('wsToken') as string : null;
-  
   useEffect(() => {
     if(!token) {
       return;
     }
-    ws.current = new WebSocket(`ws://localhost:9000?token=${token}`);
+    ws.current = new WebSocket(`${backendUrl}?token=${token}`);
     
     ws.current.onopen = function (this,event) {
       setConnected(true);
