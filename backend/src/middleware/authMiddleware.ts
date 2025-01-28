@@ -33,10 +33,11 @@ export const userMiddleware = (
       return;
     }
     if (decoded.iat && currentTime - decoded.iat * 1000 > sevenDays) {
-      return res.status(401).json({
+      res.status(401).json({
         redirect: true,
         message: "Token is older than 7 days",
       });
+      return 
     }
     const user = jwt.verify(
       token as string,
