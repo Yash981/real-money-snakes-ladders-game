@@ -16,7 +16,7 @@ const server = http.createServer(app);
 setupWebSocketServer(server);
 
 server.listen(port, () => {
-  console.log("Server is running on 9000");
+  console.log("Server is running on 5000");
 });
 
 

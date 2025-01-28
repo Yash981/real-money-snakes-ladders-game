@@ -21,4 +21,6 @@ export interface ClientMessage {
 }
 export interface userJwtClaims{
   userId:string,
+  exp?:number,
+  iat?:number
 }

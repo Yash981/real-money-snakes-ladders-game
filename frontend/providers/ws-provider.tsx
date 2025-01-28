@@ -3,8 +3,9 @@ import React, { createContext, useEffect, useRef, useState } from 'react';
 import { EventTypes, ClientMessage } from '../lib/types/event-types';
 import { toast } from 'sonner';
 import useWebSocketStore from '@/state-management/ws-state';
-import { useRouter } from 'next/navigation';
 import useDialogStore from '@/state-management/dialog-state';
+import { useTransitionRouter } from 'next-view-transitions';
+import { logoutRouteAction } from '@/actions/logout-route-action';
 
 interface WebSocketContextType {
   sendMessage: (message: ClientMessage) => void;
@@ -21,10 +22,11 @@ export function WebSocketProvider({ backendUrl,children }: { backendUrl:string,c
   const ws = useRef<WebSocket | null>(null);
   const [connected, setConnected] = useState(false);
   const [payload, setPayload] = useState<ClientMessage>();
-  const router = useRouter()
+  const router = useTransitionRouter()
   const token = typeof window !== 'undefined' ? localStorage.getItem('wsToken') as string : null;
   useEffect(() => {
     if(!token) {
+      router.push('/login')
       return;
     }
     ws.current = new WebSocket(`${backendUrl}?token=${token}`);
@@ -49,7 +51,7 @@ export function WebSocketProvider({ backendUrl,children }: { backendUrl:string,c
     };
   }, [token]);
 
-  const handleWebSocketMessage = (message: any) => {
+  const handleWebSocketMessage = async (message: any) => {
     console.log(message, 'message at global')
     switch (message.event) {
       case EventTypes.GAME_STARTED:
@@ -112,7 +114,11 @@ export function WebSocketProvider({ backendUrl,children }: { backendUrl:string,c
         })
         break;
       case EventTypes.ERROR:
-        toast.error(`Error ${message.error}`,);
+        if (message.payload?.redirect) {
+          await logoutRouteAction();
+          localStorage.removeItem('wsToken');
+          router.push('/login')
+        }
         break;
     }
   };

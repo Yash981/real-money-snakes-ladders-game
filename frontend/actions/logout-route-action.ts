@@ -8,7 +8,7 @@ export const logoutRouteAction = async () => {
     const response = await axios.post(
       `${process.env.BACKEND_URL}/api/v1/logout`
     );
-    console.log(response.status,(await cookies()).getAll('token'))
+    console.log(response.status,(await cookies()).get('token'))
     if (response.status === 200) {
       (await cookies()).delete({
         name: "token",

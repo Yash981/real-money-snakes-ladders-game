@@ -7,6 +7,9 @@ export const setupWebSocketServer = (server: any) => {
   const gameManager = new GameManager();
   wss.on("connection",  async function connection(ws, req) {
     const user = await verifyWSToken(ws,req);
+    if(!user){
+      return;
+    }
     gameManager.addUser(user)
     ws.on("close", (event) => {
       console.log(event,'event')
