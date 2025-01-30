@@ -114,6 +114,9 @@ export function WebSocketProvider({ backendUrl,children }: { backendUrl:string,c
         })
         break;
       case EventTypes.ERROR:
+        if(message?.error){
+          toast.error(message?.error)
+        }
         if (message.payload?.redirect) {
           await logoutRouteAction();
           localStorage.removeItem('wsToken');

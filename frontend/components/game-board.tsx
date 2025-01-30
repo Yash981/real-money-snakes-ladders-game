@@ -25,7 +25,7 @@ interface Square {
 
 const GameBoard = () => {
   const { sendMessage } = useWebSocket()
-  const { boardState, usersStatus, rolledDiceDetails,playerTurnIndex } = useWebSocketStore();
+  const { boardState, usersStatus, rolledDiceDetails, playerTurnIndex } = useWebSocketStore();
   const router = useTransitionRouter()
   const pathname = usePathname()
 
@@ -66,10 +66,10 @@ const GameBoard = () => {
     return (
       <>
         {isPlayer1Here && (
-            <PawnSvg base={"#000066"} topSphere={"#0000ff"} body={"#0000cc"}/>
+          <PawnSvg base={"#000066"} topSphere={"#0000ff"} body={"#0000cc"} />
         )}
         {isPlayer2Here && (
-          <PawnSvg base={"#cc0000"} topSphere={"#ff0000"} body={"#ff0000"}/>
+          <PawnSvg base={"#cc0000"} topSphere={"#ff0000"} body={"#ff0000"} />
         )}
       </>
     );
@@ -80,7 +80,6 @@ const GameBoard = () => {
       toast.error('Game not started');
       return;
     }
-    
     sendMessage({
       event: EventTypes.ROLL_DICE,
       payload: {
@@ -92,43 +91,39 @@ const GameBoard = () => {
   return (
     <div className="flex flex-wrap justify-evenly items-center min-h-screen min-w-screen  space-y-4 lg:space-y-0">
       <div className="flex flex-col justify-between p-2 h-screen items-center">
-      <div className="flex flex-col items-center justify-center w-full md:w-1/4 space-y-4">
-        <PlayerProfile
-          name={`${usersStatus?.[0]?.name || "Player 1"} ${
-            usersStatus?.[0]?.isActive === "true" ? "🟢" : "🔴"
-          }`}
-          score={
-            usersStatus?.[0]?.name === rolledDiceDetails.username
-              ? rolledDiceDetails.nextPosition
-              : boardState?.[0]?.position
-          }
-          backgroundColor={`${
-            usersStatus?.[0]?.isActive === "true" ? "bg-blue-500" : "bg-gray-400"
-          } text-white`}
-        />
-      </div>
-      <div className="w-28">
-      <RollDice onRoll={handleRollDice}  diceColour={usersStatus?.[1-playerTurnIndex!]?.isActive === "true"
-        ? 1-playerTurnIndex! === 0
-          ? "text-blue-500"
-          : "text-red-500"
-        : "text-gray-400" }/>
-      </div>
-      <div className="flex flex-col items-center justify-around w-full md:w-1/4 space-y-4">
-        <PlayerProfile
-          name={`${usersStatus?.[1]?.name || "Player 2"} ${
-            usersStatus?.[1]?.isActive === "true" ? "🟢" : "🔴"
-          }`}
-          score={
-            usersStatus?.[1]?.name === rolledDiceDetails.username
-              ? rolledDiceDetails.nextPosition
-              : boardState?.[1]?.position
-          }
-          backgroundColor={`${
-            usersStatus?.[1]?.isActive === "true" ? "bg-red-500" : "bg-gray-400"
-          } text-white`}
-        />
-      </div>
+        <div className="flex flex-col items-center justify-center w-full md:w-1/4 space-y-4">
+          <PlayerProfile
+            name={`${usersStatus?.[0]?.name || "Player 1"} ${usersStatus?.[0]?.isActive === "true" ? "🟢" : "🔴"
+              }`}
+            score={
+              usersStatus?.[0]?.name === rolledDiceDetails.username
+                ? rolledDiceDetails.nextPosition
+                : boardState?.[0]?.position
+            }
+            backgroundColor={`${usersStatus?.[0]?.isActive === "true" ? "bg-blue-500" : "bg-gray-400"
+              } text-white`}
+          />
+        </div>
+        <div className="w-28">
+          <RollDice onRoll={handleRollDice} diceColour={usersStatus?.[1 - playerTurnIndex!]?.isActive === "true"
+            ? 1 - playerTurnIndex! === 0
+              ? "text-blue-500"
+              : "text-red-500"
+            : "text-gray-400"} />
+        </div>
+        <div className="flex flex-col items-center justify-around w-full md:w-1/4 space-y-4">
+          <PlayerProfile
+            name={`${usersStatus?.[1]?.name || "Player 2"} ${usersStatus?.[1]?.isActive === "true" ? "🟢" : "🔴"
+              }`}
+            score={
+              usersStatus?.[1]?.name === rolledDiceDetails.username
+                ? rolledDiceDetails.nextPosition
+                : boardState?.[1]?.position
+            }
+            backgroundColor={`${usersStatus?.[1]?.isActive === "true" ? "bg-red-500" : "bg-gray-400"
+              } text-white`}
+          />
+        </div>
       </div>
 
       <div className="flex w-full md:w-2/4 justify-center">
@@ -157,7 +152,7 @@ const GameBoard = () => {
         </div>
       </div>
       <div className="absolute top-0 right-1">
-      <AbondonGame />
+        <AbondonGame />
       </div>
       
 

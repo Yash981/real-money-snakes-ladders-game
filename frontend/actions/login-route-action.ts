@@ -14,12 +14,10 @@ export const LoginRouteAction = async (
       data
     );
     const result = await response.data
-    console.log(result,'resultttt',result.headers,response.headers)
     if(response && response.status !== 200){
         throw new Error(response.statusText)
     }
     const setCookieHeader = response.headers['set-cookie'];
-    console.log(setCookieHeader,'setCookie header')
     if (setCookieHeader) {
       (await cookies()).set({
         name: "token",

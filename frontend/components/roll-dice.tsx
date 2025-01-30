@@ -1,9 +1,11 @@
 "use client";
 import useWebSocketStore from "@/state-management/ws-state";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 
-const RollDice = ({ onRoll,diceColour }: { onRoll: () => void,diceColour:string }) => {
+const RollDice = ({ onRoll,diceColour}: { onRoll: () => void,diceColour:string }) => {
+  const [currentDiceColour,setcurrentDiceColour] = useState(diceColour)
   const [isRolling, setIsRolling] = useState(false);
+  const [currentUser,setCurrentUser] = useState('')
   const {rolledDiceDetails} = useWebSocketStore()
   const handleClick = () => {
     if (isRolling) return;
@@ -16,6 +18,15 @@ const RollDice = ({ onRoll,diceColour }: { onRoll: () => void,diceColour:string 
       setIsRolling(false);
     }, 1000);
   };
+  useEffect(()=>{
+    if(rolledDiceDetails.username && rolledDiceDetails.username !== currentUser){
+      setCurrentUser(rolledDiceDetails.username)
+      setTimeout(() => {
+        setcurrentDiceColour(diceColour === 'text-blue-500' ? 'text-red-500':'text-blue-500')
+      }, 1100);
+    }
+    //eslint-disable-next-line
+  },[rolledDiceDetails])
   const diceDots: { [key: number]: { cx: number; cy: number }[] } = {
     1: [{ cx: 12, cy: 12 }],
     2: [
@@ -68,7 +79,7 @@ const RollDice = ({ onRoll,diceColour }: { onRoll: () => void,diceColour:string 
         strokeWidth="2"
         strokeLinecap="round"
         strokeLinejoin="round"
-        className={diceColour}
+        className={currentDiceColour || diceColour}
       >
         <rect x="3" y="3" width="20" height="20" rx="2" ry="2" />
         {diceDots[rolledDiceDetails.diceResults]?.map((dot, index) => (
