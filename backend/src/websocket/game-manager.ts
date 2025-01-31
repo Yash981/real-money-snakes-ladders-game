@@ -72,7 +72,7 @@ export class GameManager {
                       })
                     );
                   }),
-                nextPlayerTurnIndex:game.getUsernameAndPlayerTurnIndex()[1]
+                nextPlayerTurnIndex: game.getUsernameAndPlayerTurnIndex()[1],
               })
             );
             const { player1, player2 } =
@@ -108,13 +108,13 @@ export class GameManager {
             );
           }
           break;
-        case EventTypes.ROLL_DICE:  
-          const gameId = message.payload.gameId; 
+        case EventTypes.ROLL_DICE:
+          const gameId = message.payload.gameId;
 
           const gameToRoll = this.games.find((x) => x.gameId === gameId);
           if (gameToRoll) {
             const posy = gameToRoll.rollDice(user.name);
-            if (posy !== -1 &&  typeof posy !== "number") {
+            if (posy !== -1 && typeof posy !== "number") {
               if (posy.nextPosition === 100) {
                 //winner
                 user.socket.send(
@@ -229,7 +229,7 @@ export class GameManager {
                   ),
                 })
               );
-              
+
               //db call
               await prisma.game.update({
                 where: {
@@ -281,7 +281,7 @@ export class GameManager {
                 winner: socketManager
                   .getPlayerNamesIntheRoom(gameToAbandon.gameId)
                   .split("and")
-                  .filter((x) => x.trim() !== user.name)[0], 
+                  .filter((x) => x.trim() !== user.name)[0],
               })
             );
             await prisma.game.update({
@@ -328,91 +328,82 @@ export class GameManager {
               },
             });
             await prisma.user.update({
-              where:{email:user.name},
-              data:{
-                balance:{decrement:100}
-              }
-            })
+              where: { email: user.name },
+              data: {
+                balance: { decrement: 100 },
+              },
+            });
             await prisma.user.update({
-              where:{email:socketManager
-                .getPlayerNamesIntheRoom(gameToAbandon.gameId)
-                .split("and")
-                .filter((x) => x.trim() !== user.name)[0]
-                .trim()},
-                data:{
-                  balance:{increment:100}
-                }
-            })
+              where: {
+                email: socketManager
+                  .getPlayerNamesIntheRoom(gameToAbandon.gameId)
+                  .split("and")
+                  .filter((x) => x.trim() !== user.name)[0]
+                  .trim(),
+              },
+              data: {
+                balance: { increment: 100 },
+              },
+            });
             socketManager.removeUser(user.id);
             this.removeGame(gameIdToAbandon);
           }
           break;
-        case EventTypes.JOIN_GAME:
-          const gameIdToJoin = message.payload.gameId as string;
-          const gamePlayerPositions = await prisma.game.findUnique({
-            where: {
-              gameId: gameIdToJoin,
-            },
-          });
-          // console.log(JSON.stringify(gamePlayerPositions))
-          const JoinGame = new Game();
-          JoinGame.addPlayer(
-            gamePlayerPositions?.player1Id as string,
-            //@ts-ignore
-            gamePlayerPositions?.state?.player1Position as number
+        case EventTypes.GAME_RESUME:
+          const { resumedGameId } = message.payload;
+          const existingGame = this.games.find(
+            (x) => x.gameId === resumedGameId
           );
-          JoinGame.addPlayer(
-            gamePlayerPositions?.player2Id as string,
-            //@ts-ignore
-            gamePlayerPositions?.state?.player2Position
-          );
-          JoinGame.setJoinedUserGameId(gameIdToJoin);
-          this.games.push(JoinGame);
-          socketManager.addUser(gameIdToJoin, user);
-          let resumeStatus: { name: string; isActive: string }[] = [];
-          socketManager
-            .getUserSocketByroomId(JoinGame.gameId)
-            ?.map((currentUser) => {
-              resumeStatus.push(
-                currentUser.socket.readyState === WebSocket.OPEN
-                  ? { name: currentUser.name, isActive: "true" }
-                  : { name: currentUser.name, isActive: "false" }
-              );
-            });
-          socketManager
-            .getUserSocketByroomId(JoinGame.gameId)
-            ?.map((currentUser) => {
-              currentUser.socket.send(
-                JSON.stringify({
-                  event: EventTypes.USER_STATUS,
-                  payload: resumeStatus,
-                })
-              );
-            });
-          socketManager.broadcast(
-            gameIdToJoin,
-            JSON.stringify({
-              event: EventTypes.GAME_RESUME,
-              gameId: gameIdToJoin,
-              playerPositions: [
-                {
-                  //@ts-ignore
-                  username:gamePlayerPositions?.state?.player1,
-                                    //@ts-ignore
-                  position:gamePlayerPositions?.state?.player1Position
-                },
-                {
-                                    //@ts-ignore
-                  username:gamePlayerPositions?.state?.player2,
-                                    //@ts-ignore
-                  position:gamePlayerPositions?.state?.player2Position
+          if (!existingGame) {
+            user.socket.send(
+              JSON.stringify({
+                event: EventTypes.ERROR,
+                error: "Game not found",
+              })
+            );
+            return;
+          }
+          const isPlayerInGame = Object.keys(
+            existingGame.getPlayers()
+          ).includes(user.name);
+          if (!isPlayerInGame) {
+            user.socket.send(
+              JSON.stringify({
+                type: EventTypes.ERROR,
+                error: "Not authorized to resume this game",
+              })
+            );
+            return;
+          }
+          socketManager.updateUserSocket(resumedGameId, user.name, user.socket);
 
-                }
-              ],
+          const currentState = {
+            playersPosition:existingGame.getPlayers(),
+            currentTurn: existingGame.getCurrentTurn()
+          }
+          user.socket.send(JSON.stringify({
+            event: EventTypes.GAME_STATE_RESTORED,
+            payload: {
+              resumedGameId,
+              state: currentState,
+              usersStatus: socketManager.getUserSocketByroomId(resumedGameId)?.map(user => ({
+                name: user.name,
+                isActive: user.socket.readyState === WebSocket.OPEN ? "true" : "false"
+              }))
+            }
+          }));
+          socketManager.broadcast(
+            resumedGameId,
+            JSON.stringify({
+              event: EventTypes.PLAYER_RECONNECTED,
+              payload: {
+                player: user.name,
+                currentTurn: existingGame.getCurrentTurn()
+              }
             })
-          );
-          break;
-        default:
+          )
+          break
+        default: 
           return;
       }
     });
@@ -423,7 +414,7 @@ export class GameManager {
   removeUser(socket: WebSocket) {
     const user = this.users.find((user) => user.socket === socket);
     if (!user) {
-      console.error("User not found?");
+      console.error("User not found!");
       return;
     }
     const currentStatus: { name: string; isActive: string }[] = [];

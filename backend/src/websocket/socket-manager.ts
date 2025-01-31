@@ -101,6 +101,12 @@ class SocketManager {
   getInterestedSockets(){
     return this.interestedSockets
   }
+  updateUserSocket(roomId: string, username: string, newSocket: WebSocket) {
+    const room = this.interestedSockets.get(roomId)
+    if (room) {
+      room.push(new User(newSocket, { userId: username }))
+    }
+  }
 }
 
 export const socketManager = SocketManager.getInstance();

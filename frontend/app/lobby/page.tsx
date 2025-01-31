@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { LogOut, History, Loader2, Users, Trophy, Dice1, Dice6Icon, Dice4Icon } from 'lucide-react';
+import { LogOut, History, Loader2, Users, Trophy, Dice6Icon, Dice4Icon } from 'lucide-react';
 import { EventTypes } from '@/lib/types/event-types';
 import { logoutRouteAction } from '@/actions/logout-route-action';
 import { useTransitionRouter } from 'next-view-transitions';
