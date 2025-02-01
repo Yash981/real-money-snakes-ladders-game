@@ -98,12 +98,13 @@ export function WebSocketProvider({ backendUrl,children }: { backendUrl:string,c
           payload:message.playerPositions
         });
         break;
-      case EventTypes.GAME_RESUME:
-        setboardState(message.playerPositions);
-        setPayload({
-          event: message.event,
-          payload:message.playerPositions
-        });
+
+      case EventTypes.PLAYER_RECONNECTED:
+        toast.success(`Player ${message.payload?.player} has reconnected to the game`)
+        break
+      case EventTypes.GAME_STATE_RESTORED:
+        console.log(message,'restored')
+        setboardState(message.payload?.playerPositions);
         break
       case EventTypes.USER_STATUS:
         setUsersStatus(null)
@@ -127,6 +128,11 @@ export function WebSocketProvider({ backendUrl,children }: { backendUrl:string,c
   };
 
   const sendMessage = (message: ClientMessage) => {
+    console.log(ws.current,'ws')
+    if(message.event === EventTypes.GAME_RESUME){
+      ws.current?.send(JSON.stringify(message))
+    }
+    console.log(message,'message send messag',ws.current?.readyState)
     if (ws.current?.readyState === WebSocket.OPEN) {
       ws.current.send(JSON.stringify(message));
     }

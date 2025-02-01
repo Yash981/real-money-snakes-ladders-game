@@ -303,7 +303,7 @@ export class GameManager {
                 winner: socketManager
                   .getPlayerNamesIntheRoom(gameToAbandon.gameId)
                   .split("and")
-                  .filter((x) => x.trim() !== user.name)[0]
+                  .filter((x) => x?.trim() !== user.name)[0]
                   .trim(),
                 GameHistory: {
                   createMany: {
@@ -350,7 +350,7 @@ export class GameManager {
           }
           break;
         case EventTypes.GAME_RESUME:
-          const { resumedGameId } = message.payload;
+          const { resumedGameId } = message.payload; 
           const existingGame = this.games.find(
             (x) => x.gameId === resumedGameId
           );
@@ -377,19 +377,37 @@ export class GameManager {
           }
           socketManager.updateUserSocket(resumedGameId, user.name, user.socket);
 
-          const currentState = {
-            playersPosition:existingGame.getPlayers(),
-            currentTurn: existingGame.getCurrentTurn()
-          }
+          const currentState = Object.entries(existingGame.getPlayers()).map(
+            ([key, value]) => ({
+              username: key,
+              position: value,
+            })
+          )
+          let reconnectStatus: { name: string; isActive: string }[] = [];
+            socketManager
+              .getUserSocketByroomId(existingGame.gameId)
+              ?.map((currentUser) => {
+                reconnectStatus.push(
+                  currentUser.socket.readyState === WebSocket.OPEN
+                    ? { name: currentUser.name, isActive: "true" }
+                    : { name: currentUser.name, isActive: "false" }
+                );
+              })
           user.socket.send(JSON.stringify({
             event: EventTypes.GAME_STATE_RESTORED,
             payload: {
               resumedGameId,
-              state: currentState,
-              usersStatus: socketManager.getUserSocketByroomId(resumedGameId)?.map(user => ({
-                name: user.name,
-                isActive: user.socket.readyState === WebSocket.OPEN ? "true" : "false"
-              }))
+              playerPositions: currentState,
+              usersStatus: socketManager
+              .getUserSocketByroomId(existingGame.gameId)
+              ?.map((currentUser) => {
+                currentUser.socket.send(
+                  JSON.stringify({
+                    event: EventTypes.USER_STATUS,
+                    payload: reconnectStatus,
+                  })
+                );
+              })
             }
           }));
           socketManager.broadcast(

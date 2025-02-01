@@ -24,11 +24,25 @@ interface Square {
 
 
 const GameBoard = () => {
-  const { sendMessage } = useWebSocket()
+  const { sendMessage,connected } = useWebSocket()
   const { boardState, usersStatus, rolledDiceDetails, playerTurnIndex } = useWebSocketStore();
   const router = useTransitionRouter()
   const pathname = usePathname()
-
+  const resumedGameId = pathname.split('/').pop();
+  console.log(resumedGameId,'resumeGameId')
+  useEffect(() => {
+    if (connected && resumedGameId) {
+      sendMessage({
+        event: EventTypes.GAME_RESUME,
+        payload: {
+          resumedGameId
+        }
+      });
+    } else {
+      toast.error("No game found to resume.");
+    }
+  }, [connected]);
+  console.log(boardState,'boardState')
   const createBoard = (): Square[] => {
     const board: Square[] = [];
     for (let i = 100; i >= 1; i--) {

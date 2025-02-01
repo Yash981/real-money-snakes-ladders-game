@@ -12,11 +12,13 @@ export enum EventTypes{
     USER_STATUS='USER_STATUS',
     GAME_WINNER='GAME_WINNER',
     GAME_LOSSER='GAME_LOSSER',
-    GAME_RESUME='GAME_RESUME'
+    GAME_RESUME='GAME_RESUME',
+    GAME_STATE_RESTORED='GAME_STATE_RESTORED',
+    PLAYER_RECONNECTED='PLAYER_RECONNECTED'
   };
 export interface ClientMessage {
     event:EventTypes;
-    payload?:{roomId?:string,gameId?:string,abondonedGameId?:string,winner?:string,losser?:string,playerIndex?:number};
+    payload?:{roomId?:string,gameId?:string,abondonedGameId?:string,winner?:string,losser?:string,playerIndex?:number,resumedGameId?:string};
 }
 export interface Player{
   userId:string,
