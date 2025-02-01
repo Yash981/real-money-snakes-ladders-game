@@ -102,9 +102,14 @@ class SocketManager {
     return this.interestedSockets
   }
   updateUserSocket(roomId: string, username: string, newSocket: WebSocket) {
-    const room = this.interestedSockets.get(roomId)
+    const room = this.interestedSockets.get(roomId);
     if (room) {
-      room.push(new User(newSocket, { userId: username }))
+      const existingUserIndex = room.findIndex(user => user.name === username);
+      if (existingUserIndex !== -1) {
+        room[existingUserIndex].socket = newSocket;
+      } else {
+        room.push(new User(newSocket, { userId: username }));
+      }
     }
   }
 }
