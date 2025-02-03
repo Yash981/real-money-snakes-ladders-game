@@ -39,7 +39,7 @@ const AbondonGame = () => {
     }
     return (
         <>
-            <div className="flex items-center mt-6 justify-end w-full max-w-4xl ">
+            <div className="flex items-center lg:mt-6 sm:mb-2 justify-end w-full max-w-4xl max-sm:mt-0 sm:mt-12">
                 <Button className="" variant={"destructive"} onClick={handleEndGame}>End Game</Button>
             </div>
             <AlertDialog open={openAlertDialog} onOpenChange={setOpenAlertDialog}>

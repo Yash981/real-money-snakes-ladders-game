@@ -82,18 +82,16 @@ class SocketManager {
     });
   }
   getPlayerNamesIntheRoom(roomId: string) {
-    // console.log(roomId,'roomid')
-    const userssss:string[] = []
+    const PlayerNames:string[] = []
     this.interestedSockets.forEach((users, key) => {
         console.log(key,roomId,key===roomId)
       if (key === roomId) {
         users.forEach((user) => {
-          userssss.push(`${user.name} `);
+          PlayerNames.push(`${user.name} `);
         });
       }
     });
-    // console.log(userssss,'userrrrsss')
-    return userssss.join(" and ");
+    return PlayerNames.join(" and ");
   }
   getUserSocketByroomId(roomId:string){
     return this.interestedSockets.get(roomId)

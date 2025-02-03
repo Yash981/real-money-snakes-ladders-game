@@ -64,22 +64,22 @@ const RollDice = ({ onRoll,diceColour}: { onRoll: () => void,diceColour:string }
     <button
       onClick={handleClick}
       disabled={isRolling}
-      className={`p-2 rounded-lg focus:outline-none ${
+      className={`p-1 sm:p-2 rounded-lg focus:outline-none ${
         isRolling ? "animate-spin" : ""
       } transition-transform duration-300 ease-in-out`}
       aria-label="Roll Dice"
     >
       <svg
         xmlns="http://www.w3.org/2000/svg"
-        width="48"
-        height="48"
+        width="100%"
+        height="100%"
         viewBox="0 0 24 24"
         fill="none"
         stroke="currentColor"
         strokeWidth="2"
         strokeLinecap="round"
         strokeLinejoin="round"
-        className={currentDiceColour || diceColour}
+        className={`w-10 h-10 sm:w-12 sm:h-12 ${currentDiceColour || diceColour}`}
       >
         <rect x="3" y="3" width="20" height="20" rx="2" ry="2" />
         {diceDots[rolledDiceDetails.diceResults]?.map((dot, index) => (

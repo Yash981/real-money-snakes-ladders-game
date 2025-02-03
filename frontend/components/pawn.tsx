@@ -6,9 +6,9 @@ type PawnColors = {
 const PawnSvg = ({ body, topSphere, base }: PawnColors) => {
     return (
         <>
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 400">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 400" >
                 {/* <!-- Blue Pawn --> */}
-                <g transform="translate(300, 20) scale(2.5)">
+                <g transform="translate(300, 0) scale(2.5)">
                     {/* <!-- Base --> */}
                     <path d="M20 160 L100 160 L90 140 L30 140 Z" fill={base} />
                     {/* <!-- Body --> */}
