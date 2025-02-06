@@ -58,6 +58,7 @@ export function WebSocketProvider({ backendUrl,children }: { backendUrl:string,c
         toast.success("Game Started");
         setGamePlayers(message.gameStarted);
         setPlayerTurnIndex(message.nextPlayerTurnIndex.turnIndex)
+        sessionStorage.setItem('gameBoardIndex',message.gameBoardIndex)
         setPayload({
           event: message.event,
           payload:message.gameId
@@ -71,9 +72,11 @@ export function WebSocketProvider({ backendUrl,children }: { backendUrl:string,c
         });
         break
       case EventTypes.GAME_FINISHED:
+        sessionStorage.removeItem('gameBoardIndex')
         toast.info("Game Over");
         break;
       case EventTypes.GAME_WINNER:
+        sessionStorage.removeItem('gameBoardIndex')
         setOpenDialog(true)
         setPayload({
           event:message.event,
@@ -81,6 +84,7 @@ export function WebSocketProvider({ backendUrl,children }: { backendUrl:string,c
         })
         break;
       case EventTypes.GAME_LOSSER:
+        sessionStorage.removeItem('gameBoardIndex')
         setOpenDialog(true)
         setPayload({
           event:message.event,
@@ -109,10 +113,6 @@ export function WebSocketProvider({ backendUrl,children }: { backendUrl:string,c
       case EventTypes.USER_STATUS:
         setUsersStatus(null)
         setUsersStatus(message.payload)
-        setPayload({
-          event:message.event,
-          payload:message.payload
-        })
         break;
       case EventTypes.ERROR:
         if(message?.error){
@@ -128,11 +128,6 @@ export function WebSocketProvider({ backendUrl,children }: { backendUrl:string,c
   };
 
   const sendMessage = (message: ClientMessage) => {
-    console.log(ws.current,'ws')
-    if(message.event === EventTypes.GAME_RESUME){
-      ws.current?.send(JSON.stringify(message))
-    }
-    console.log(message,'message send messag',ws.current?.readyState)
     if (ws.current?.readyState === WebSocket.OPEN) {
       ws.current.send(JSON.stringify(message));
     }

@@ -1,6 +1,6 @@
-import { BOARD_SIZE, snakesAndLadders } from "../utils/constants";
+import { BOARD_SIZE, NumberMap } from "../utils/constants";
 
-export const createBoard = () => {
+export const createBoard = (snakesAndLadders:NumberMap) => {
     const board = new Array(BOARD_SIZE).fill(0);
   
     for (let i = 1; i <= BOARD_SIZE; i++) {
@@ -13,6 +13,7 @@ export const createBoard = () => {
   
     return board;
 };
+
 export const movePlayer = (currentPosition: number, board: number[]) => {
     const diceRoll = Math.floor(Math.random() * 6) + 1;
     let newPosition = currentPosition + diceRoll;
@@ -20,6 +21,5 @@ export const movePlayer = (currentPosition: number, board: number[]) => {
       return {currentPosition,diceRoll,newPosition: board[currentPosition-1]};
     }
   
-    console.log(createBoard())
     return {currentPosition,diceRoll,newPosition: board[newPosition-1]};
   };

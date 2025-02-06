@@ -1,7 +1,7 @@
 "use client"
 import React, { useEffect, useState } from 'react';
 import { Button } from "@/components/ui/button";
-import { snakesAndLadders } from '@/lib/constants';
+import { allSnakesAndLadders } from '@/lib/constants';
 import { useWebSocket } from '@/hooks/use-socket-hook';
 import PlayerProfile from './player-profile';
 import { EventTypes } from '@/lib/types/event-types';
@@ -24,12 +24,11 @@ interface Square {
 
 
 const GameBoard = () => {
-  const { sendMessage,connected } = useWebSocket()
+  const { sendMessage, connected } = useWebSocket()
   const { boardState, usersStatus, rolledDiceDetails, playerTurnIndex } = useWebSocketStore();
   const router = useTransitionRouter()
   const pathname = usePathname()
   const resumedGameId = pathname.split('/').pop();
-  console.log(resumedGameId,'resumeGameId')
   useEffect(() => {
     if (connected && resumedGameId) {
       sendMessage({
@@ -42,19 +41,23 @@ const GameBoard = () => {
       toast.error("No game found to resume.");
     }
   }, [connected]);
-  console.log(boardState,'boardState')
   const createBoard = (): Square[] => {
+    let currentGameIndex = Number(sessionStorage.getItem('gameBoardIndex'))
+    console.log(currentGameIndex)
+    if (currentGameIndex === null || currentGameIndex === undefined) {
+      currentGameIndex = 0
+    }
     const board: Square[] = [];
     for (let i = 100; i >= 1; i--) {
       const square: Square = { number: i };
 
-      if (snakesAndLadders[i]) {
-        if (snakesAndLadders[i] > i) {
+      if (allSnakesAndLadders[Number(currentGameIndex)][i]) {
+        if (allSnakesAndLadders[Number(currentGameIndex)][i] > i) {
           square.hasLadder = true;
-          square.ladderEnd = snakesAndLadders[i];
+          square.ladderEnd = allSnakesAndLadders[Number(currentGameIndex)][i];
         } else {
           square.hasSnake = true;
-          square.snakeEnd = snakesAndLadders[i];
+          square.snakeEnd = allSnakesAndLadders[Number(currentGameIndex)][i];
         }
       }
       board.push(square);
@@ -71,15 +74,11 @@ const GameBoard = () => {
       return 'bg-gradient-to-br from-green-100 to-green-200 hover:from-green-200 hover:to-green-300';
     }
     // Alternate colors for regular squares
-    return square.number % 2 === 0 
+    return square.number % 2 === 0
       ? 'bg-gradient-to-br from-blue-50 to-white hover:from-blue-100 hover:to-blue-50'
       : 'bg-gradient-to-br from-purple-50 to-white hover:from-purple-100 hover:to-purple-50';
   };
   const renderPawn = (squareNumber: number) => {
-    // const currentPlayer = rolledDiceDetails.username;
-    // const diceResult = rolledDiceDetails.diceResults;
-    // const currentPosition = rolledDiceDetails.nextPosition - diceResult;
-    // const targetPosition = rolledDiceDetails.nextPosition;
     const isPlayer1Here = boardState.map((x: any) => x?.position)[0] === squareNumber;
     const isPlayer2Here = boardState.map((x: any) => x?.position)[1] === squareNumber;
     return (
@@ -112,19 +111,17 @@ const GameBoard = () => {
       <div className="flex lg:flex-col lg:justify-between p-2 lg:h-screen items-center">
         <div className="flex flex-col items-center justify-center space-y-6">
           <PlayerProfile
-            name={`${usersStatus?.[0]?.name || "Player 1"} ${
-              usersStatus?.[0]?.isActive === "true" ? "🟢" : "🔴"
-            }`}
+            name={`${usersStatus?.[0]?.name || "Player 1"} ${usersStatus?.[0]?.isActive === "true" ? "🟢" : "🔴"
+              }`}
             score={
               usersStatus?.[0]?.name === rolledDiceDetails.username
                 ? rolledDiceDetails.nextPosition
                 : boardState?.[0]?.position
             }
-            backgroundColor={`${
-              usersStatus?.[0]?.isActive === "true"
+            backgroundColor={`${usersStatus?.[0]?.isActive === "true"
                 ? "bg-gradient-to-r from-blue-500 to-blue-600"
                 : "bg-gradient-to-r from-gray-400 to-gray-500"
-            }`}
+              }`}
           />
         </div>
         <div className="w-28 max-sm:mt-auto sm:mt-auto lg:mt-0">

@@ -29,19 +29,6 @@ export class GameManager {
               console.error("Pending Game not found");
               return;
             }
-            const connectingUrself = Object.keys(game.getPlayers()).find(
-              (x) => x === user.name
-            );
-            // console.log(connectingUrself, "connectingUrself");
-            if (connectingUrself) {
-              user.socket.send(
-                JSON.stringify({
-                  type: EventTypes.ERROR,
-                  error: "You are already in the game",
-                })
-              );
-              return;
-            }
             socketManager.addUser(game.gameId, user);
             game.addPlayer(user.name);
             let status: { name: string; isActive: string }[] = [];
@@ -58,11 +45,15 @@ export class GameManager {
               game.gameId,
               JSON.stringify({
                 event: EventTypes.GAME_STARTED,
+                gameBoardIndex:game.getBoardIndex(),
                 gameId: game.gameId,
                 gameStarted: socketManager
                   .getPlayerNamesIntheRoom(game.gameId)
                   .split("and"),
-                playersSockets: socketManager
+                nextPlayerTurnIndex: game.getUsernameAndPlayerTurnIndex()[1],
+              })
+            );
+            socketManager
                   .getUserSocketByroomId(game.gameId)
                   ?.map((currentUser) => {
                     currentUser.socket.send(
@@ -71,10 +62,7 @@ export class GameManager {
                         payload: status,
                       })
                     );
-                  }),
-                nextPlayerTurnIndex: game.getUsernameAndPlayerTurnIndex()[1],
-              })
-            );
+            })
             const { player1, player2 } =
               (await this.getPlayerIds(game.gameId)) || {};
 
@@ -116,6 +104,29 @@ export class GameManager {
             const posy = gameToRoll.rollDice(user.name);
             if (posy !== -1 && typeof posy !== "number") {
               if (posy.nextPosition === 100) {
+                //dice results
+                socketManager.broadcast(
+                  gameToRoll.gameId,
+                  JSON.stringify({
+                    event: EventTypes.DICE_RESULTS,
+                    diceResult: { ...posy, username: user.name },
+                  })
+                );
+                //boardState
+                socketManager.broadcast(
+                  gameToRoll.gameId,
+                  JSON.stringify({
+                    event: EventTypes.BOARD_STATE,
+                    boardState: `${user.name} moved to position ${posy.nextPosition}`,
+                    playerPositions: Object.entries(gameToRoll.getPlayers()).map(
+                      ([key, value]) => ({
+                        username: key,
+                        position: value,
+                      })
+                    ),
+                  })
+                )
+                setTimeout(async () => {
                 //winner
                 user.socket.send(
                   JSON.stringify({
@@ -205,6 +216,8 @@ export class GameManager {
                 );
                 socketManager.removeUser(user.id);
                 this.removeGame(gameToRoll.gameId);
+                return;
+                }, 1000);
                 return;
               }
               //dice results
