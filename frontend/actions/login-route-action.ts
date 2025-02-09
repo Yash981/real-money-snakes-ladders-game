@@ -13,11 +13,11 @@ export const LoginRouteAction = async (
       `${process.env.BACKEND_URL}/api/v1/signin`,
       data
     );
-    const result = await response.data
-    if(response && response.status !== 200){
-        throw new Error(response.statusText)
+    const result = await response.data;
+    if (response && response.status !== 200) {
+      throw new Error(response.statusText);
     }
-    const setCookieHeader = response.headers['set-cookie'];
+    const setCookieHeader = response.headers["set-cookie"];
     if (setCookieHeader) {
       (await cookies()).set({
         name: "token",
@@ -26,19 +26,24 @@ export const LoginRouteAction = async (
         path: "/",
         maxAge: 7 * 24 * 60 * 60,
         secure: process.env.NODE_ENV === "production",
-        sameSite: process.env.NODE_ENV === "production" ? "strict" : "lax", 
+        sameSite: process.env.NODE_ENV === "production" ? "strict" : "lax",
       });
     }
-    return result;
+    return { success: true, data: result };
   } catch (error) {
     if (axios.isAxiosError(error)) {
       console.error("Axios error:", error.response?.data || error.message);
-      throw new Error(
-        error.response?.data?.message || "An error occurred during login"
-      );
+      return {
+        success: false,
+        error:
+          error.response?.data?.message || "An error occurred during login",
+      };
     } else {
       console.error("Unexpected error:", error);
-      throw new Error("An unexpected error occurred during login");
+      return {
+        success: false,
+        error: error || "An error occurred during login",
+      };
     }
   }
 };

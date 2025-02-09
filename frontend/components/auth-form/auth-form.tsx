@@ -34,9 +34,12 @@ export const AuthForm = () => {
         if(pathname === "/login"){
             try {
                 const response = await LoginRouteAction(data)
+                if (!response.success) {
+                    return setError(response.error); // Display the error message
+                }
                 console.log(response)
-                if(response && response.token){
-                    localStorage.setItem('wsToken',response.token)
+                if(response && response.data.token){
+                    localStorage.setItem('wsToken',response.data.token)
                 }
                 router.push("/lobby")
             } catch (error) {
@@ -47,10 +50,13 @@ export const AuthForm = () => {
         } else {
             try {
                 const response = await signupRouteAction(data)
+                if (!response.success) {
+                    return setError(response.error);
+                }
                 console.log(response)
                 router.push("/login")
-            } catch (error) {
-                setError((error as Error).message)
+            } catch (error:any) {
+                setError(error)
             } finally {
                 setIsLoading(false)
             }
