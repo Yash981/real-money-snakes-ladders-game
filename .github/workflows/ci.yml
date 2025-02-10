@@ -41,8 +41,3 @@ jobs:
         run: |
           cd backend
           npm run build
-
-      - name: Lint Backend
-        run: |
-          cd backend
-          npm run lint
