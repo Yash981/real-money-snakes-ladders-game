@@ -16,8 +16,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Snakes and Ladders",
-  description: "A simple snakes and ladders game.",
+  title: "Snakes & Ladders | Real Money Gaming",
+  description: "Play the classic Snakes & Ladders game with real money stakes. Challenge friends and compete in an exciting multiplayer environment.",
 };
 
 export default function RootLayout({
