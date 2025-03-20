@@ -3,7 +3,7 @@ import { DepositMoney, getCurrentBalance, getHistoryOfGamesPlayed, UserLogout, U
 import { userMiddleware } from "../middleware/authMiddleware";
 
 export const UserRouter = Router()
-
+UserRouter.get('/cronjob',(req,res)=>{res.send("Running cronjob successfully");return;})
 UserRouter.post('/signup',UserSignUp)
 UserRouter.post('/signin',UserSignIn)
 UserRouter.post('/account/deposit',userMiddleware,DepositMoney)
