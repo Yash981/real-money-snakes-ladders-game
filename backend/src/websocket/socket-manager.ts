@@ -91,7 +91,7 @@ class SocketManager {
         });
       }
     });
-    return PlayerNames.join(" and ");
+    return PlayerNames;
   }
   getUserSocketByroomId(roomId:string){
     return this.interestedSockets.get(roomId)

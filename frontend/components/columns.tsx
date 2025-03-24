@@ -8,7 +8,6 @@ import { Minus, Plus } from "lucide-react"
 export type HistoryType = {
     datetime: string
     gameId: string
-    email: string
     opponent: string
     result: 'WIN' | 'LOSS' | 'DRAW'
     betamount: number
@@ -35,10 +34,6 @@ export const columns: ColumnDef<HistoryType>[] = [
     {
         accessorKey: "gameId",
         header: "GameID",
-    },
-    {
-        accessorKey: "email",
-        header: "Email",
     },
     {
         accessorKey: "opponent",

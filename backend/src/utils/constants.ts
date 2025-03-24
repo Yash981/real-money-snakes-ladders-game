@@ -100,6 +100,6 @@ const allSnakesAndLadders = [
 ];
 export const getRandomSnakesAndLadders = (): { board: NumberMap, index: number } => {
   const randomIndex = Math.floor(Math.random() * allSnakesAndLadders.length);
-  return { board: allSnakesAndLadders[randomIndex], index: randomIndex };
+  return { board: allSnakesAndLadders?.[randomIndex] ?? snakesAndLadders1, index: randomIndex };
 };
 export const BOARD_SIZE = 100;

@@ -1,7 +1,6 @@
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import url from "url";
-import { findUserByEmail } from "../models/user-model";
 import { User } from "../websocket/socket-manager";
 import { userJwtClaims } from "../types/event-types";
 
