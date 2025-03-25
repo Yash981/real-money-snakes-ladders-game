@@ -3,6 +3,7 @@ import { ClientMessage, EventTypes } from "../types/event-types";
 import Game from "./game";
 import { socketManager, User } from "./socket-manager";
 import prisma from "../db/client";
+import redisService from "../services/redis-service";
 export class GameManager {
   private games: Game[];
   private pendingGameId: string | null;
@@ -27,7 +28,7 @@ export class GameManager {
           await this.handleRollDice(message, user);
           break;
         case EventTypes.ABANDON_GAME:
-          await this.handleAbondonGame(message,user)
+          await this.handleAbondonGame(message, user);
           break;
         case EventTypes.GAME_RESUME:
           await this.handleGameResume(message, user);
@@ -57,8 +58,26 @@ export class GameManager {
           socketManager.getUserSocketByroomId(key)?.map((currentUser) => {
             currentStatus.push(
               currentUser.socket.readyState === WebSocket.CLOSED
-                ? { name: currentUser.name, isActive: "false" }
-                : { name: currentUser.name, isActive: "true" }
+                ? {
+                    name: currentUser.name
+                      .split("@")[0]
+                      .split(" ")
+                      .map(
+                        (word) => word.charAt(0).toUpperCase() + word.slice(1)
+                      )
+                      .join(" "),
+                    isActive: "false",
+                  }
+                : {
+                    name: currentUser.name
+                      .split("@")[0]
+                      .split(" ")
+                      .map(
+                        (word) => word.charAt(0).toUpperCase() + word.slice(1)
+                      )
+                      .join(" "),
+                    isActive: "true",
+                  }
             );
           });
           return;
@@ -117,8 +136,22 @@ export class GameManager {
       socketManager.getUserSocketByroomId(game.gameId)?.map((currentUser) => {
         status.push(
           currentUser.socket.readyState === WebSocket.OPEN
-            ? { name: currentUser.name, isActive: "true" }
-            : { name: currentUser.name, isActive: "false" }
+            ? {
+                name: currentUser.name
+                  .split("@")[0]
+                  .split(" ")
+                  .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+                  .join(" "),
+                isActive: "true",
+              }
+            : {
+                name: currentUser.name
+                  .split("@")[0]
+                  .split(" ")
+                  .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+                  .join(" "),
+                isActive: "false",
+              }
         );
       });
       socketManager.broadcast(
@@ -152,6 +185,18 @@ export class GameManager {
             state: {},
           },
         });
+        let gameStartedState = {
+          gameId: game.gameId,
+          player1Id: player1.email,
+          player2Id: player2.email,
+          currentTurn: player1.email,
+          state: {},
+        };
+        await redisService.set(
+          `game:${game.gameId}`,
+          JSON.stringify(gameStartedState)
+        );
+        await redisService.getClient().sadd("active_games", game.gameId);
       } else {
         console.error("Player IDs not found");
       }
@@ -245,6 +290,30 @@ export class GameManager {
                     winner: user.name,
                   },
                 });
+
+                const completedGameState = {
+                  gameId: gameToRoll.gameId,
+                  status: "COMPLETED",
+                  player1Id: Object.keys(gameToRoll.getPlayers())[0],
+                  player2Id: Object.keys(gameToRoll.getPlayers())[1],
+                  state: {
+                    player1Position: gameToRoll.getPlayerPosition(
+                      Object.keys(gameToRoll.getPlayers())[0]
+                    ),
+                    player2Position: gameToRoll.getPlayerPosition(
+                      Object.keys(gameToRoll.getPlayers())[1]
+                    ),
+                  },
+                  winner: user.name,
+                };
+                await redisService.set(
+                  `game:${gameToRoll.gameId}`,
+                  JSON.stringify(completedGameState)
+                );
+                await redisService
+                  .getClient()
+                  .srem("active_games", gameToRoll.gameId);
+
                 await prisma.gameHistory.create({
                   data: {
                     gameId: gameToRoll.gameId,
@@ -259,8 +328,7 @@ export class GameManager {
                     gameId: gameToRoll.gameId,
                     userId: socketManager
                       .getPlayerNamesIntheRoom(gameToRoll.gameId)
-                      .filter((x) => x.trim() !== user.name)[0]
-                      .trim(),
+                      .filter((x) => x !== user.name)[0],
                     moneyChange: -100,
                     result: "LOSE",
                   },
@@ -334,6 +402,28 @@ export class GameManager {
             currentTurn: user.name,
           },
         });
+        const getCurrentGameIdState = await redisService.get(
+          `game:${gameToRoll.gameId}`
+        );
+        if (getCurrentGameIdState) {
+          const InprogressState = {
+            ...JSON.parse(getCurrentGameIdState),
+            currentTurn: user.name,
+            state:{
+              state: {
+                player1: Object.keys(gameToRoll.getPlayers())[0],
+                player2: Object.keys(gameToRoll.getPlayers())[1],
+                player1Position: gameToRoll.getPlayerPosition(
+                  Object.keys(gameToRoll.getPlayers())[0]
+                ),
+                player2Position: gameToRoll.getPlayerPosition(
+                  Object.keys(gameToRoll.getPlayers())[1]
+                ),
+              },
+            }
+          };
+          await redisService.set(`game:${gameToRoll.gameId}`,JSON.stringify(InprogressState))
+        }
       } else {
         user.socket.send(
           JSON.stringify({
@@ -346,8 +436,21 @@ export class GameManager {
   }
   private async handleAbondonGame(message: ClientMessage, user: User) {
     const gameIdToAbandon = message.payload.gameId as string;
+    console.log(user, "userrrr", gameIdToAbandon, "gameId");
     const gameToAbandon = this.games.find((x) => x.gameId === gameIdToAbandon);
+    console.log(gameToAbandon, "game");
     if (gameToAbandon) {
+      const players = socketManager.getPlayerNamesIntheRoom(
+        gameToAbandon.gameId
+      );
+      const winner = players?.filter((x) => x?.trim() !== user.name)?.[0];
+      const loser = user.name;
+      console.log(winner, loser, "winn losser");
+      if (!winner || !loser) {
+        console.error("Could not determine winner/loser for abandoned game");
+        return;
+      }
+
       socketManager.broadcast(
         gameToAbandon.gameId,
         JSON.stringify({
@@ -360,11 +463,32 @@ export class GameManager {
         gameToAbandon.gameId,
         JSON.stringify({
           event: EventTypes.GAME_WINNER,
-          winner: socketManager
-            .getPlayerNamesIntheRoom(gameToAbandon.gameId)
-            ?.filter((x) => x?.trim() !== user.name)?.[0],
+          winner: winner,
         })
       );
+      const getCurrentGameIdState = await redisService.get(
+        `game:${gameToAbandon.gameId}`
+      );
+      if(getCurrentGameIdState){
+        const updateGameState = {
+          ...JSON.parse(getCurrentGameIdState),
+          status:"COMPLETED",
+          state: {
+            player1: Object.keys(gameToAbandon.getPlayers())[0],
+            player2: Object.keys(gameToAbandon.getPlayers())[1],
+            player1Position: gameToAbandon.getPlayerPosition(
+              Object.keys(gameToAbandon.getPlayers())[0]
+            ),
+            player2Position: gameToAbandon.getPlayerPosition(
+              Object.keys(gameToAbandon.getPlayers())[1]
+            ),
+          },
+          winner: winner,
+
+        }
+        await redisService.set(`game:${gameToAbandon.gameId}`,JSON.stringify(updateGameState))
+        await redisService.getClient().srem("active_games", gameToAbandon.gameId);
+      }
       await prisma.game.update({
         where: {
           gameId: gameToAbandon.gameId,
@@ -381,21 +505,17 @@ export class GameManager {
               Object.keys(gameToAbandon.getPlayers())[1]
             ),
           },
-          winner: socketManager
-            .getPlayerNamesIntheRoom(gameToAbandon.gameId)
-            ?.filter((x) => x?.trim() !== user.name)?.[0],
+          winner: winner,
           GameHistory: {
             createMany: {
               data: [
                 {
-                  userId: user.name,
+                  userId: loser,
                   moneyChange: -100,
                   result: "LOSE",
                 },
                 {
-                  userId: socketManager
-                    .getPlayerNamesIntheRoom(gameToAbandon.gameId)
-                    .filter((x) => x.trim() !== user.name)[0],
+                  userId: winner,
                   moneyChange: 100,
                   result: "WIN",
                 },
@@ -405,22 +525,18 @@ export class GameManager {
         },
       });
       await prisma.user.update({
-        where: { email: user.name },
+        where: { email: loser },
         data: {
           balance: { decrement: 100 },
         },
       });
       await prisma.user.update({
-        where: {
-          email: socketManager
-            .getPlayerNamesIntheRoom(gameToAbandon.gameId)
-            .filter((x) => x.trim() !== user.name)[0]
-            .trim(),
-        },
+        where: { email: winner },
         data: {
           balance: { increment: 100 },
         },
       });
+
       socketManager.removeUser(user.id);
       this.removeGame(gameIdToAbandon);
     }
@@ -463,8 +579,22 @@ export class GameManager {
       ?.map((currentUser) => {
         reconnectStatus.push(
           currentUser.socket.readyState === WebSocket.OPEN
-            ? { name: currentUser.name, isActive: "true" }
-            : { name: currentUser.name, isActive: "false" }
+            ? {
+                name: currentUser.name
+                  .split("@")[0]
+                  .split(" ")
+                  .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+                  .join(" "),
+                isActive: "true",
+              }
+            : {
+                name: currentUser.name
+                  .split("@")[0]
+                  .split(" ")
+                  .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+                  .join(" "),
+                isActive: "false",
+              }
         );
       });
     user.socket.send(
