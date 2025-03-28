@@ -29,22 +29,22 @@ const GameBoard = () => {
   const router = useTransitionRouter()
   const pathname = usePathname()
   const resumedGameId = pathname.split('/').pop();
-  useEffect(() => {
-    if (connected && resumedGameId) {
-      sendMessage({
-        event: EventTypes.GAME_RESUME,
-        payload: {
-          resumedGameId
-        }
-      });
-    } else {
-      toast.error("No game found to resume.");
-    }
-  }, [connected]);
+  // useEffect(() => {
+  //   if (connected && resumedGameId) {
+  //     sendMessage({
+  //       event: EventTypes.GAME_RESUME,
+  //       payload: {
+  //         resumedGameId
+  //       }
+  //     });
+  //   } else {
+  //     toast.error("No game found to resume.");
+  //   }
+  // }, [connected]);
   const createBoard = (): Square[] => {
     let currentGameIndex = Number(sessionStorage.getItem('gameBoardIndex'))
     console.log(currentGameIndex)
-    if (currentGameIndex === null || currentGameIndex === undefined) {
+    if (!currentGameIndex) {
       currentGameIndex = 0
     }
     const board: Square[] = [];
@@ -73,7 +73,6 @@ const GameBoard = () => {
     if (square.hasLadder) {
       return 'bg-gradient-to-br from-green-100 to-green-200 hover:from-green-200 hover:to-green-300';
     }
-    // Alternate colors for regular squares
     return square.number % 2 === 0
       ? 'bg-gradient-to-br from-blue-50 to-white hover:from-blue-100 hover:to-blue-50'
       : 'bg-gradient-to-br from-purple-50 to-white hover:from-purple-100 hover:to-purple-50';

@@ -13,6 +13,7 @@ import {
   hashPassword,
 } from "../services/auth-service";
 import prisma from "../db/client";
+import redisService from "../services/redis-service";
 
 export const UserSignUp = async (req: Request, res: Response) => {
   const parsedSignUpData = AuthFormSchema.safeParse(req.body);
@@ -186,24 +187,10 @@ export const UserLogout = async (req: Request, res: Response) => {
 }
 export const verifyGameId = async(req:Request,res:Response) =>{
   const gameId = req.params.gameId
-  try {
-    const existingGame  = await prisma.game.findFirst({
-      where:{
-        gameId:gameId,
-        OR:[
-          {player1Id:req.user?.email},
-          {player2Id:req.user?.email}
-        ]
-      },
-    })
-    if(!existingGame){
-      res.status(400).json({ message:"Invalid Game ID"})
-      return;
-    }
-    res.status(200).json({ message: "Game ID verified successfully" })
-    return;
-  } catch (error) {
-    res.status(500).json({ error:"Internal Server Error"})
+  const getAllActivegames = await redisService.getAllActiveGames()
+  if(!getAllActivegames || !getAllActivegames.length || !redisService.exists(gameId)){
+    res.status(400).json({ message:"Invalid Game ID"})
     return;
   }
+  res.status(200).json({ message: "Game ID verified successfully" })
 }
