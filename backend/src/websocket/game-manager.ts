@@ -299,7 +299,6 @@ export class GameManager {
         status: "COMPLETED",
         winner: winner.name,
         betAmount: 100.0,
-        state: game.getPlayers(),
       };
 
       await redisService.saveGameState(game.gameId, gameState);
@@ -377,9 +376,7 @@ export class GameManager {
             reason: "You abandoned the game",
           })
         );
-        const getGameStatePosition = await redisService.get(
-          `game:${gameId}`
-        );
+        const getGameStatePosition = await redisService.get(`game:${gameId}`);
         if (!getGameStatePosition) {
           return;
         }
@@ -388,7 +385,6 @@ export class GameManager {
           gameId,
           status: "COMPLETED",
           winner: otherPlayerEmail,
-          state: game.getPlayers(),
         };
 
         await redisService.saveGameState(gameId, gameState);

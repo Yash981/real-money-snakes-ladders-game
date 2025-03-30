@@ -122,12 +122,10 @@ class RedisService {
                             winner: gameState.winner || null,
                             betAmount: gameState.betAmount || 0.0,
                             players: {
-                                connect: Object.entries(gameState.players).map(([key, player]) => {
+                                connect: Object.entries(gameState.players as Record<string, { position: number; email: string }>).map(([key, player]) => {
                                     console.log('Email:completed', player);
                                     return { email: player.email };
                                 }),
-
-                                
                             }
                         }
                     });
@@ -155,15 +153,10 @@ class RedisService {
                             state: gameState.state || {},
                             betAmount: gameState.betAmount || 0.0,
                             players: {
-                                connect: Object.keys(gameState.players).length > 0 
-                                    ? (() => {
-                                        console.log('Player entries:', Object.entries(gameState.players));
-                                        return Object.entries(gameState.players).map(([key, player]) => {
-                                            console.log('Email:', player);
-                                            return { email: player.email };
-                                        });
-                                    })()
-                                    : []
+                                connect: Object.entries(gameState.players as Record<string, { position: number; email: string }>).map(([key, player]) => {
+                                    console.log('Email:', player);
+                                    return { email: player.email };
+                                }),
                             },
                         }
                     });

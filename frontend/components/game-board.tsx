@@ -99,7 +99,7 @@ const GameBoard = () => {
       <div className="flex lg:flex-col lg:justify-between p-2 lg:h-screen items-center">
         <div className="flex flex-col items-center justify-center space-y-6">
           <PlayerProfile
-            name={`${usersStatus?.[0]?.name || "Player 1"} ${usersStatus?.[0]?.isActive === "active" ? "🟢" : "🔴"
+            name={`${usersStatus?.[0]?.name.split('@').map(word => word.charAt(0).toUpperCase() + word.slice(1))[0] || "Player 1"} ${usersStatus?.[0]?.isActive === "active" ? "🟢" : "🔴"
               }`}
             score={
               usersStatus?.[0]?.name === rolledDiceDetails.username
@@ -121,7 +121,7 @@ const GameBoard = () => {
         </div>
         <div className="flex flex-col items-center justify-around w-full md:w-1/4 space-y-4">
           <PlayerProfile
-            name={`${usersStatus?.[1]?.name || "Player 2"} ${usersStatus?.[1]?.isActive === "active" ? "🟢" : "🔴"
+            name={`${usersStatus?.[1]?.name.split('@').map(word => word.charAt(0).toUpperCase() + word.slice(1))[0] || "Player 2"} ${usersStatus?.[1]?.isActive === "active" ? "🟢" : "🔴"
               }`}
             score={
               usersStatus?.[1]?.name === rolledDiceDetails.username

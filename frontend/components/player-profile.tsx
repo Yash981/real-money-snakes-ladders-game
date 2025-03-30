@@ -42,7 +42,7 @@ const PlayerProfile: React.FC<PlayerProfileProps> = ({ name, score, backgroundCo
         <div className="absolute inset-0 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg blur opacity-25"></div>
         <div className="relative bg-white px-6 py-4 rounded-lg shadow-xl border border-gray-100">
           <div className="text-xs uppercase tracking-wider text-gray-500 mb-1 text-center">Score</div>
-          <div className="text-2xl font-bold text-gray-800 text-center">{score}</div>
+          <div className="text-2xl font-bold text-gray-800 text-center">{score ?? 0}</div>
         </div>
       </div>
     </div>

@@ -50,10 +50,10 @@ export const columns: ColumnDef<HistoryType>[] = [
         accessorKey: "betamount",
         header: "Bet Amount",
         cell: ({ row }) => {
-            if ((row.getValue('betamount') as number).toString().includes('-')){
+            if ((row.getValue('betamount') as number).toString().includes('-') || row.getValue('result') === 'LOSE'){
                 return <div className="flex justify-center items-center font-bold text-lg">
                     <Minus size={15} className="text-red-500 text-lg"/>
-                    <p className="text-lg text-red-500">{(row.getValue('betamount') as number).toString().substring(1)}</p>
+                    <p className="text-lg text-red-500">{(row.getValue('betamount') as number).toString().substring(0)}</p>
                 </div>
             }else{
                 return <div className="flex justify-center items-center font-bold text-lg">

@@ -116,7 +116,7 @@ export function WebSocketProvider({ backendUrl,children }: { backendUrl:string,c
         break;
       case EventTypes.ERROR:
         if(message){
-          toast.error(message)
+          toast.error(message.message)
         }
         if (message.payload?.redirect) {
           await logoutRouteAction();

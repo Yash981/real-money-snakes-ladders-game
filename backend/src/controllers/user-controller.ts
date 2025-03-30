@@ -143,9 +143,9 @@ export const getHistoryOfGamesPlayed = async (req: Request, res: Response) => {
   const customizeGamesPlayed = TotalGamesPlayed.map(game=>({
     datetime:game.createdAt,
     gameId: game.gameId,
-    email: game.players.some(item => item.email === req.user?.email),
+    email: req.user?.email,
     opponent: game.players.find(item => item.email !== req.user?.email)?.email,
-    result: game.winner === req.user?.email ? 'WIN' : 'LOSS',
+    result: game.winner === req.user?.email ? 'WIN' : 'LOSE',
     betamount: game.betAmount
   }))
   res.status(200).json({
