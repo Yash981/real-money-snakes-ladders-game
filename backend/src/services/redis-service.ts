@@ -106,6 +106,7 @@ class RedisService {
             for (const gameId of completedGames) {
                 const gameState = await this.getGameState(gameId);
                 if (gameState) {
+                    console.log(gameState,'completed gamestate')
                     await prisma.game.upsert({
                         where: { gameId },
                         update: {
@@ -121,7 +122,12 @@ class RedisService {
                             winner: gameState.winner || null,
                             betAmount: gameState.betAmount || 0.0,
                             players: {
-                                connect: (gameState.players || []).map((email: string) => ({ email }))
+                                connect: Object.entries(gameState.players).map(([key, player]) => {
+                                    console.log('Email:completed', player);
+                                    return { email: player.email };
+                                }),
+
+                                
                             }
                         }
                     });
@@ -134,7 +140,8 @@ class RedisService {
             const activeGames = await this.getAllActiveGames();
             for (const gameId of activeGames) {
                 const gameState = await this.getGameState(gameId);
-                if (gameState) {
+                if (gameState && gameState.status !== 'WAITING') {
+                    console.log(gameState,'gameState, active')
                     await prisma.game.upsert({
                         where: { gameId },
                         update: {
@@ -148,8 +155,15 @@ class RedisService {
                             state: gameState.state || {},
                             betAmount: gameState.betAmount || 0.0,
                             players: {
-                                connect: (gameState.players || []).map((email: string) => ({ email })),
-                            
+                                connect: Object.keys(gameState.players).length > 0 
+                                    ? (() => {
+                                        console.log('Player entries:', Object.entries(gameState.players));
+                                        return Object.entries(gameState.players).map(([key, player]) => {
+                                            console.log('Email:', player);
+                                            return { email: player.email };
+                                        });
+                                    })()
+                                    : []
                             },
                         }
                     });

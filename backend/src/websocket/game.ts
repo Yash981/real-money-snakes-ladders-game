@@ -149,7 +149,7 @@ class Game {
         currentPosition: number,
         diceResults: number,
         nextPosition: number,
-        nextPlayerTurn: string
+        nextPlayerTurn: number
     } | null> {
         if (email !== this.getCurrentTurn()) {
             return null;
@@ -170,7 +170,7 @@ class Game {
             await redisService.markGameCompleted(this._gameId);
         }
         
-        this.nextTurn();
+        const playerNextTurn = this.nextTurn();
         const nextPlayerEmail = this.getCurrentTurn();
         
         await this.saveStateToRedis();
@@ -179,7 +179,7 @@ class Game {
             currentPosition: nextPos.currentPosition,
             diceResults: nextPos.diceRoll,
             nextPosition: nextPos.newPosition,
-            nextPlayerTurn: nextPlayerEmail
+            nextPlayerTurn: playerNextTurn
         };
     }
 

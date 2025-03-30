@@ -86,7 +86,7 @@ class SocketManager {
     this.interestedSockets.forEach((users, key) => {
       if (key === roomId) {
         users.forEach((user) => {
-          PlayerNames.push(`${user.name} `);
+          PlayerNames.push(`${user.name}`);
         });
       }
     });

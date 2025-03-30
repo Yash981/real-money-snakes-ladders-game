@@ -29,18 +29,6 @@ const GameBoard = () => {
   const router = useTransitionRouter()
   const pathname = usePathname()
   const resumedGameId = pathname.split('/').pop();
-  // useEffect(() => {
-  //   if (connected && resumedGameId) {
-  //     sendMessage({
-  //       event: EventTypes.GAME_RESUME,
-  //       payload: {
-  //         resumedGameId
-  //       }
-  //     });
-  //   } else {
-  //     toast.error("No game found to resume.");
-  //   }
-  // }, [connected]);
   const createBoard = (): Square[] => {
     let currentGameIndex = Number(sessionStorage.getItem('gameBoardIndex'))
     console.log(currentGameIndex)
@@ -105,26 +93,27 @@ const GameBoard = () => {
     })
 
   }
+  console.log(usersStatus,'all details',rolledDiceDetails)
   return (
     <div className="flex flex-wrap justify-evenly items-center lg:min-h-screen lg:min-w-screen  space-y-4 lg:space-y-0 sm:w-full">
       <div className="flex lg:flex-col lg:justify-between p-2 lg:h-screen items-center">
         <div className="flex flex-col items-center justify-center space-y-6">
           <PlayerProfile
-            name={`${usersStatus?.[0]?.name || "Player 1"} ${usersStatus?.[0]?.isActive === "true" ? "🟢" : "🔴"
+            name={`${usersStatus?.[0]?.name || "Player 1"} ${usersStatus?.[0]?.isActive === "active" ? "🟢" : "🔴"
               }`}
             score={
               usersStatus?.[0]?.name === rolledDiceDetails.username
                 ? rolledDiceDetails.nextPosition
                 : boardState?.[0]?.position
             }
-            backgroundColor={`${usersStatus?.[0]?.isActive === "true"
+            backgroundColor={`${usersStatus?.[0]?.isActive === "active"
                 ? "bg-gradient-to-r from-blue-500 to-blue-600"
                 : "bg-gradient-to-r from-gray-400 to-gray-500"
               }`}
           />
         </div>
         <div className="w-28 max-sm:mt-auto sm:mt-auto lg:mt-0">
-          <RollDice onRoll={handleRollDice} diceColour={usersStatus?.[1 - playerTurnIndex!]?.isActive === "true"
+          <RollDice onRoll={handleRollDice} diceColour={usersStatus?.[1 - playerTurnIndex!]?.isActive === "active"
             ? 1 - playerTurnIndex! === 0
               ? "text-blue-500"
               : "text-red-500"
@@ -132,14 +121,14 @@ const GameBoard = () => {
         </div>
         <div className="flex flex-col items-center justify-around w-full md:w-1/4 space-y-4">
           <PlayerProfile
-            name={`${usersStatus?.[1]?.name || "Player 2"} ${usersStatus?.[1]?.isActive === "true" ? "🟢" : "🔴"
+            name={`${usersStatus?.[1]?.name || "Player 2"} ${usersStatus?.[1]?.isActive === "active" ? "🟢" : "🔴"
               }`}
             score={
               usersStatus?.[1]?.name === rolledDiceDetails.username
                 ? rolledDiceDetails.nextPosition
                 : boardState?.[1]?.position
             }
-            backgroundColor={`${usersStatus?.[1]?.isActive === "true" ? "bg-red-500" : "bg-gray-400"
+            backgroundColor={`${usersStatus?.[1]?.isActive === "active" ? "bg-red-500" : "bg-gray-400"
               } text-white`}
           />
         </div>
