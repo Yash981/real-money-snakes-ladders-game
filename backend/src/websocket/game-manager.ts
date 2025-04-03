@@ -262,7 +262,6 @@ export class GameManager {
   }
 
   private async handleGameWin(game: Game, winner: User): Promise<void> {
-    // Notify winner
     winner.socket.send(
       JSON.stringify({
         gameId: game.gameId,
@@ -271,7 +270,6 @@ export class GameManager {
       })
     );
 
-    // Notify losers
     const roomUsers = socketManager.getUserSocketByroomId(game.gameId) || [];
     for (const user of roomUsers) {
       if (user.name !== winner.name) {
@@ -288,17 +286,17 @@ export class GameManager {
     const playerEmails = socketManager
       .getPlayerNamesIntheRoom(game.gameId)
       .map((email) => email.trim());
-    const getGameStatePosition = await redisService.get(`game:${game.gameId}`);
+    const getGameStatePosition = await redisService.getGameState(game.gameId);
     if (!getGameStatePosition) {
       return;
     }
     if (playerEmails.length === 2) {
       const gameState = {
-        ...JSON.parse(getGameStatePosition),
+        ...getGameStatePosition,
         gameId: game.gameId,
         status: "COMPLETED",
         winner: winner.name,
-        betAmount: 100.0,
+        betAmount: 100.00,
       };
 
       await redisService.saveGameState(game.gameId, gameState);
@@ -376,12 +374,12 @@ export class GameManager {
             reason: "You abandoned the game",
           })
         );
-        const getGameStatePosition = await redisService.get(`game:${gameId}`);
+        const getGameStatePosition = await redisService.getGameState(gameId);
         if (!getGameStatePosition) {
           return;
         }
         const gameState = {
-          ...JSON.parse(getGameStatePosition),
+          ...getGameStatePosition,
           gameId,
           status: "COMPLETED",
           winner: otherPlayerEmail,

@@ -171,7 +171,7 @@ class Game {
         }
         
         const playerNextTurn = this.nextTurn();
-        const nextPlayerEmail = this.getCurrentTurn();
+        this.getCurrentTurn();
         
         await this.saveStateToRedis();
         
