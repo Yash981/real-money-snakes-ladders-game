@@ -84,10 +84,9 @@ class SocketManager {
   getPlayerNamesIntheRoom(roomId: string) {
     const PlayerNames:string[] = []
     this.interestedSockets.forEach((users, key) => {
-        console.log(key,roomId,key===roomId)
       if (key === roomId) {
         users.forEach((user) => {
-          PlayerNames.push(`${user.name} `);
+          PlayerNames.push(`${user.name}`);
         });
       }
     });

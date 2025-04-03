@@ -4,627 +4,449 @@ import Game from "./game";
 import { socketManager, User } from "./socket-manager";
 import prisma from "../db/client";
 import redisService from "../services/redis-service";
+
 export class GameManager {
-  private games: Game[];
-  private pendingGameId: string | null;
-  private users: User[];
+  private games: Map<string, Game> = new Map();
+  private pendingGameId: string | null = null;
+  private users: User[] = [];
+
   constructor() {
-    this.games = [];
-    this.pendingGameId = null;
-    this.users = [];
+    this.loadActiveGamesFromRedis();
   }
-  addUser(user: User) {
+
+  private async loadActiveGamesFromRedis(): Promise<void> {
+    try {
+      const activeGameIds = await redisService.getAllActiveGames();
+      console.log(`Loading ${activeGameIds.length} active games from Redis`);
+
+      for (const gameId of activeGameIds) {
+        const gameState = await redisService.getGameState(gameId);
+        if (gameState) {
+          const game = new Game(gameId);
+          this.games.set(gameId, game);
+        }
+      }
+    } catch (error) {
+      console.error("Error loading active games from Redis:", error);
+    }
+  }
+
+  public addUser(user: User): void {
     this.users.push(user);
-    this.addHandler(user);
+    this.setupMessageHandler(user);
   }
-  private addHandler(user: User) {
+
+  private setupMessageHandler(user: User): void {
     user.socket.on("message", async (data) => {
-      const message = JSON.parse(data.toString()) as ClientMessage;
-      switch (message.event) {
-        case EventTypes.INIT_GAME:
-          await this.handleInitGame(user);
-          break;
-        case EventTypes.ROLL_DICE:
-          await this.handleRollDice(message, user);
-          break;
-        case EventTypes.ABANDON_GAME:
-          await this.handleAbondonGame(message, user);
-          break;
-        case EventTypes.GAME_RESUME:
-          await this.handleGameResume(message, user);
-          break;
-        default:
-          return;
+      try {
+        const message = JSON.parse(data.toString()) as ClientMessage;
+        await this.handleClientMessage(message, user);
+      } catch (error) {
+        console.error("Error handling WebSocket message:", error);
+        this.sendErrorToUser(user, "Invalid message format");
       }
     });
   }
-  removeGame(gameId: string) {
-    this.games = this.games.filter((x) => x.gameId !== gameId);
-  }
-  removeUser(socket: WebSocket) {
-    const user = this.users.find((user) => user.socket === socket);
-    if (!user) {
-      console.error("User not found!");
-      return;
-    }
-    const currentStatus: { name: string; isActive: string }[] = [];
-    let keyy = "";
 
-    const interestedSockets = socketManager.getInterestedSockets();
-    for (const [key, value] of interestedSockets.entries()) {
-      value.map((valueCurrentUser) => {
-        if (valueCurrentUser.name === user.name) {
-          keyy = key;
-          socketManager.getUserSocketByroomId(key)?.map((currentUser) => {
-            currentStatus.push(
-              currentUser.socket.readyState === WebSocket.CLOSED
-                ? {
-                    name: currentUser.name
-                      .split("@")[0]
-                      .split(" ")
-                      .map(
-                        (word) => word.charAt(0).toUpperCase() + word.slice(1)
-                      )
-                      .join(" "),
-                    isActive: "false",
-                  }
-                : {
-                    name: currentUser.name
-                      .split("@")[0]
-                      .split(" ")
-                      .map(
-                        (word) => word.charAt(0).toUpperCase() + word.slice(1)
-                      )
-                      .join(" "),
-                    isActive: "true",
-                  }
-            );
-          });
-          return;
-        }
-      });
+  private async handleClientMessage(
+    message: ClientMessage,
+    user: User
+  ): Promise<void> {
+    switch (message.event) {
+      case EventTypes.INIT_GAME:
+        await this.handleInitGame(user);
+        break;
+      case EventTypes.ROLL_DICE:
+        await this.handleRollDice(message, user);
+        break;
+      case EventTypes.ABANDON_GAME:
+        await this.handleAbandonGame(message, user);
+        break;
+      case EventTypes.GAME_RESUME:
+        await this.handleGameResume(message, user);
+        break;
+      case EventTypes.CANCELLED_GAME:
+        this.pendingGameId = null;
+        break;
+      default:
+        this.sendErrorToUser(user, `Unknown event type: ${message.event}`);
     }
-    if (keyy) {
-      socketManager.getUserSocketByroomId(keyy)?.map((currentUser) => {
-        if (currentUser.socket.readyState === WebSocket.OPEN) {
-          currentUser.socket.send(
-            JSON.stringify({
-              event: EventTypes.USER_STATUS,
-              payload: currentStatus,
-            })
-          );
-        }
-      });
-    }
-    this.users = this.users.filter((user) => user.socket !== socket);
-    socketManager.removeUser(user.id);
   }
-  private async getPlayerIds(gameId: string): Promise<{
-    player1: { id: string; email: string; password: string; balance: number };
-    player2: { id: string; email: string; password: string; balance: number };
-  } | null> {
-    const playerEmails = socketManager
-      .getPlayerNamesIntheRoom(gameId)
-      .map((email) => email.trim());
-    if (playerEmails.length !== 2) {
-      console.error("Invalid number of players in the room");
-      return null;
-    }
 
-    const [player1, player2] = await Promise.all([
-      prisma.user.findFirst({ where: { email: playerEmails[0] } }),
-      prisma.user.findFirst({ where: { email: playerEmails[1] } }),
-    ]);
-    console.log(player1, player2, "player1, player2");
-    if (!player1 || !player2) {
-      console.error("Player IDs not found");
-      return null;
-    }
-
-    return { player1, player2 };
-  }
-  private async handleInitGame(user: User) {
-    if (this.pendingGameId) {
-      const game = this.games.find((x) => x.gameId === this.pendingGameId);
-      if (!game) {
-        console.error("Pending Game not found");
-        return;
-      }
-      socketManager.addUser(game.gameId, user);
-      game.addPlayer(user.name);
-      let status: { name: string; isActive: string }[] = [];
-      socketManager.getUserSocketByroomId(game.gameId)?.map((currentUser) => {
-        status.push(
-          currentUser.socket.readyState === WebSocket.OPEN
-            ? {
-                name: currentUser.name
-                  .split("@")[0]
-                  .split(" ")
-                  .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-                  .join(" "),
-                isActive: "true",
-              }
-            : {
-                name: currentUser.name
-                  .split("@")[0]
-                  .split(" ")
-                  .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-                  .join(" "),
-                isActive: "false",
-              }
-        );
-      });
-      socketManager.broadcast(
-        game.gameId,
+  private sendErrorToUser(user: User, message: string): void {
+    if (user.socket.readyState === WebSocket.OPEN) {
+      user.socket.send(
         JSON.stringify({
-          event: EventTypes.GAME_STARTED,
-          gameBoardIndex: game.getBoardIndex(),
-          gameId: game.gameId,
-          gameStarted: socketManager.getPlayerNamesIntheRoom(game.gameId),
-          nextPlayerTurnIndex: game.getUsernameAndPlayerTurnIndex()[1],
+          event: EventTypes.ERROR,
+          message,
         })
       );
-      socketManager.getUserSocketByroomId(game.gameId)?.map((currentUser) => {
+    }
+  }
+
+  public removeGame(gameId: string): void {
+    this.games.delete(gameId);
+  }
+
+  public removeUser(socket: WebSocket): void {
+    const user = this.users.find((user) => user.socket === socket);
+    if (!user) {
+      console.error("User not found for disconnection event");
+      return;
+    }
+
+    this.updateUserStatusInGames(user);
+
+    this.users = this.users.filter((u) => u.socket !== socket);
+    socketManager.removeUser(user.id);
+  }
+
+  private updateUserStatusInGames(user: User): void {
+    const interestedSockets = socketManager.getInterestedSockets();
+
+    for (const [roomId, users] of interestedSockets.entries()) {
+      const userInRoom = users.some((u) => u.name === user.name);
+
+      if (userInRoom) {
+        const currentStatus = this.getCurrentActiveUsersIntheGame(roomId);
+
+        socketManager.getUserSocketByroomId(roomId)?.forEach((currentUser) => {
+          if (currentUser.socket.readyState === WebSocket.OPEN) {
+            currentUser.socket.send(
+              JSON.stringify({
+                event: EventTypes.USER_STATUS,
+                payload: currentStatus,
+              })
+            );
+          }
+        });
+      }
+    }
+  }
+
+  private async handleInitGame(user: User): Promise<void> {
+    try {
+      if (this.pendingGameId) {
+        await this.joinPendingGame(user);
+      } else {
+        await this.createNewGame(user);
+      }
+    } catch (error) {
+      console.error("Error initializing game:", error);
+      this.sendErrorToUser(user, "Failed to initialize game");
+    }
+  }
+
+  private async joinPendingGame(user: User): Promise<void> {
+    if (!this.pendingGameId) return;
+
+    const game = this.games.get(this.pendingGameId);
+    if (!game) {
+      console.error("Pending Game not found");
+      this.pendingGameId = null;
+      return;
+    }
+
+    socketManager.addUser(game.gameId, user);
+    await game.addPlayer(user.name);
+
+    const status = this.getCurrentActiveUsersIntheGame(game.gameId);
+
+    const playerEmails = socketManager.getPlayerNamesIntheRoom(game.gameId);
+
+    socketManager.broadcast(
+      game.gameId,
+      JSON.stringify({
+        event: EventTypes.GAME_STARTED,
+        gameBoardIndex: game.getBoardIndex(),
+        gameId: game.gameId,
+        gameStarted: playerEmails,
+        nextPlayerTurnIndex: game.getUsernameAndPlayerTurnIndex()[1],
+      })
+    );
+
+    socketManager.getUserSocketByroomId(game.gameId)?.forEach((currentUser) => {
+      if (currentUser.socket.readyState === WebSocket.OPEN) {
         currentUser.socket.send(
           JSON.stringify({
             event: EventTypes.USER_STATUS,
             payload: status,
           })
         );
-      });
-      const { player1, player2 } = (await this.getPlayerIds(game.gameId)) || {};
-
-      if (player1 && player2) {
-        await prisma.game.create({
-          data: {
-            gameId: game.gameId,
-            status: "IN_PROGRESS",
-            player1Id: player1.email,
-            player2Id: player2.email,
-            currentTurn: player1.email,
-            state: {},
-          },
-        });
-        let gameStartedState = {
-          gameId: game.gameId,
-          player1Id: player1.email,
-          player2Id: player2.email,
-          currentTurn: player1.email,
-          state: {},
-        };
-        await redisService.set(
-          `game:${game.gameId}`,
-          JSON.stringify(gameStartedState)
-        );
-        await redisService.getClient().sadd("active_games", game.gameId);
-      } else {
-        console.error("Player IDs not found");
       }
-      this.pendingGameId = null;
-    } else {
-      const game = new Game();
-      game.addPlayer(user.name);
-      this.games.push(game);
-      this.pendingGameId = game.gameId;
-      socketManager.addUser(game.gameId, user);
-      socketManager.broadcast(
-        game.gameId,
-        JSON.stringify({
-          event: EventTypes.GAME_ADDED,
-          gameId: game.gameId,
-        })
-      );
+    });
+
+    this.pendingGameId = null;
+
+    const emails = playerEmails.map((email) => email.trim());
+    if (emails.length === 2) {
+      const gameState = {
+        gameId: game.gameId,
+        players: emails.reduce<
+          Record<string, { position: number; email: string }>
+        >((acc, email, index) => {
+          acc[email] = { position: 0, email };
+          return acc;
+        }, {}),
+        status: "IN_PROGRESS",
+        currentTurn: emails[0],
+        state: {},
+      };
+
+      await redisService.saveGameState(game.gameId, gameState);
     }
   }
-  private async handleRollDice(message: ClientMessage, user: User) {
+
+  private async createNewGame(user: User): Promise<void> {
+    const game = new Game();
+    await game.addPlayer(user.name);
+
+    this.games.set(game.gameId, game);
+    this.pendingGameId = game.gameId;
+
+    socketManager.addUser(game.gameId, user);
+
+    socketManager.broadcast(
+      game.gameId,
+      JSON.stringify({
+        event: EventTypes.GAME_ADDED,
+        gameId: game.gameId,
+      })
+    );
+  }
+
+  private async handleRollDice(
+    message: ClientMessage,
+    user: User
+  ): Promise<void> {
     const gameId = message.payload.gameId;
+    const game = this.games.get(gameId);
 
-    const gameToRoll = this.games.find((x) => x.gameId === gameId);
-    if (gameToRoll) {
-      const posy = gameToRoll.rollDice(user.name);
-      if (posy !== -1 && typeof posy !== "number") {
-        if (posy.nextPosition === 100) {
-          //dice results
-          socketManager.broadcast(
-            gameToRoll.gameId,
-            JSON.stringify({
-              event: EventTypes.DICE_RESULTS,
-              diceResult: { ...posy, username: user.name },
-            })
-          );
-          //boardState
-          socketManager.broadcast(
-            gameToRoll.gameId,
-            JSON.stringify({
-              event: EventTypes.BOARD_STATE,
-              boardState: `${user.name} moved to position ${posy.nextPosition}`,
-              playerPositions: Object.entries(gameToRoll.getPlayers()).map(
-                ([key, value]) => ({
-                  username: key,
-                  position: value,
-                })
-              ),
-            })
-          );
-          setTimeout(async () => {
-            //winner
-            user.socket.send(
-              JSON.stringify({
-                gameId: gameToRoll.gameId,
-                event: EventTypes.GAME_WINNER,
-                winner: user.name,
-              })
-            );
-            //losser
-            socketManager
-              .getUserSocketByroomId(gameToRoll.gameId)
-              ?.map((currentUser) => {
-                if (currentUser.name !== user.name) {
-                  currentUser.socket.send(
-                    JSON.stringify({
-                      gameId: gameToRoll.gameId,
-                      event: EventTypes.GAME_LOSSER,
-                      losser: currentUser.name,
-                    })
-                  );
-                }
-              });
-            await prisma.$transaction(
-              async (prisma) => {
-                await prisma.game.update({
-                  where: {
-                    gameId: gameToRoll.gameId,
-                  },
-                  data: {
-                    status: "COMPLETED",
-                    state: {
-                      player1: Object.keys(gameToRoll.getPlayers())[0],
-                      player2: Object.keys(gameToRoll.getPlayers())[1],
-                      player1Position: gameToRoll.getPlayerPosition(
-                        Object.keys(gameToRoll.getPlayers())[0]
-                      ),
-                      player2Position: gameToRoll.getPlayerPosition(
-                        Object.keys(gameToRoll.getPlayers())[1]
-                      ),
-                    },
-                    winner: user.name,
-                  },
-                });
+    if (!game) {
+      this.sendErrorToUser(user, "Game not found");
+      return;
+    }
 
-                const completedGameState = {
-                  gameId: gameToRoll.gameId,
-                  status: "COMPLETED",
-                  player1Id: Object.keys(gameToRoll.getPlayers())[0],
-                  player2Id: Object.keys(gameToRoll.getPlayers())[1],
-                  state: {
-                    player1Position: gameToRoll.getPlayerPosition(
-                      Object.keys(gameToRoll.getPlayers())[0]
-                    ),
-                    player2Position: gameToRoll.getPlayerPosition(
-                      Object.keys(gameToRoll.getPlayers())[1]
-                    ),
-                  },
-                  winner: user.name,
-                };
-                await redisService.set(
-                  `game:${gameToRoll.gameId}`,
-                  JSON.stringify(completedGameState)
-                );
-                await redisService
-                  .getClient()
-                  .srem("active_games", gameToRoll.gameId);
+    const rollResult = await game.rollDice(user.name);
+    if (!rollResult) {
+      this.sendErrorToUser(user, "It's not your turn or invalid move");
+      return;
+    }
 
-                await prisma.gameHistory.create({
-                  data: {
-                    gameId: gameToRoll.gameId,
-                    userId: user.name,
-                    moneyChange: 100,
-                    result: "WIN",
-                  },
-                });
+    socketManager.broadcast(
+      gameId,
+      JSON.stringify({
+        event: EventTypes.DICE_RESULTS,
+        diceResult: { ...rollResult, username: user.name },
+      })
+    );
 
-                await prisma.gameHistory.create({
-                  data: {
-                    gameId: gameToRoll.gameId,
-                    userId: socketManager
-                      .getPlayerNamesIntheRoom(gameToRoll.gameId)
-                      .filter((x) => x !== user.name)[0],
-                    moneyChange: -100,
-                    result: "LOSE",
-                  },
-                });
-                await prisma.user.update({
-                  where: {
-                    email: user.name,
-                  },
-                  data: {
-                    balance: { increment: 100 },
-                  },
-                });
-                await prisma.user.update({
-                  where: {
-                    email: socketManager
-                      .getPlayerNamesIntheRoom(gameToRoll.gameId)
-                      .filter((x) => x.trim() !== user.name)[0],
-                  },
-                  data: {
-                    balance: { decrement: 100 },
-                  },
-                });
-              },
-              { timeout: 10000 }
-            );
-            socketManager.removeUser(user.id);
-            this.removeGame(gameToRoll.gameId);
-            return;
-          }, 1000);
-          return;
-        }
-        //dice results
-        socketManager.broadcast(
-          gameToRoll.gameId,
-          JSON.stringify({
-            event: EventTypes.DICE_RESULTS,
-            diceResult: { ...posy, username: user.name },
+    // Update board state for all players
+    socketManager.broadcast(
+      gameId,
+      JSON.stringify({
+        event: EventTypes.BOARD_STATE,
+        boardState: `${user.name} moved to position ${rollResult.nextPosition}`,
+        playerPositions: Object.entries(game.getPlayers()).map(
+          ([key, value]) => ({
+            username: key,
+            position: value,
           })
-        );
-        //board State
-        socketManager.broadcast(
-          gameToRoll.gameId,
-          JSON.stringify({
-            event: EventTypes.BOARD_STATE,
-            boardState: `${user.name} moved to position ${posy.nextPosition}`,
-            playerPositions: Object.entries(gameToRoll.getPlayers()).map(
-              ([key, value]) => ({
-                username: key,
-                position: value,
-              })
-            ),
-          })
-        );
+        ),
+      })
+    );
 
-        //db call
-        await prisma.game.update({
-          where: {
-            gameId: gameToRoll.gameId,
-          },
-          data: {
-            state: {
-              player1: Object.keys(gameToRoll.getPlayers())[0],
-              player2: Object.keys(gameToRoll.getPlayers())[1],
-              player1Position: gameToRoll.getPlayerPosition(
-                Object.keys(gameToRoll.getPlayers())[0]
-              ),
-              player2Position: gameToRoll.getPlayerPosition(
-                Object.keys(gameToRoll.getPlayers())[1]
-              ),
-            },
-            currentTurn: user.name,
-          },
-        });
-        const getCurrentGameIdState = await redisService.get(
-          `game:${gameToRoll.gameId}`
-        );
-        if (getCurrentGameIdState) {
-          const InprogressState = {
-            ...JSON.parse(getCurrentGameIdState),
-            currentTurn: user.name,
-            state:{
-              state: {
-                player1: Object.keys(gameToRoll.getPlayers())[0],
-                player2: Object.keys(gameToRoll.getPlayers())[1],
-                player1Position: gameToRoll.getPlayerPosition(
-                  Object.keys(gameToRoll.getPlayers())[0]
-                ),
-                player2Position: gameToRoll.getPlayerPosition(
-                  Object.keys(gameToRoll.getPlayers())[1]
-                ),
-              },
-            }
-          };
-          await redisService.set(`game:${gameToRoll.gameId}`,JSON.stringify(InprogressState))
-        }
-      } else {
+    if (rollResult.nextPosition === 100) {
+      await this.handleGameWin(game, user);
+    }
+  }
+
+  private async handleGameWin(game: Game, winner: User): Promise<void> {
+    // Notify winner
+    winner.socket.send(
+      JSON.stringify({
+        gameId: game.gameId,
+        event: EventTypes.GAME_WINNER,
+        winner: winner.name,
+      })
+    );
+
+    // Notify losers
+    const roomUsers = socketManager.getUserSocketByroomId(game.gameId) || [];
+    for (const user of roomUsers) {
+      if (user.name !== winner.name) {
         user.socket.send(
           JSON.stringify({
-            event: EventTypes.ERROR,
-            error: "Not your turn",
+            gameId: game.gameId,
+            event: EventTypes.GAME_LOSSER,
+            losser: user.name,
           })
         );
       }
     }
+
+    const playerEmails = socketManager
+      .getPlayerNamesIntheRoom(game.gameId)
+      .map((email) => email.trim());
+    const getGameStatePosition = await redisService.get(`game:${game.gameId}`);
+    if (!getGameStatePosition) {
+      return;
+    }
+    if (playerEmails.length === 2) {
+      const gameState = {
+        ...JSON.parse(getGameStatePosition),
+        gameId: game.gameId,
+        status: "COMPLETED",
+        winner: winner.name,
+        betAmount: 100.0,
+      };
+
+      await redisService.saveGameState(game.gameId, gameState);
+      await redisService.markGameCompleted(game.gameId);
+
+      await redisService.syncWithDatabase();
+
+      try {
+        const winnerUser = await prisma.user.findUnique({
+          where: { email: winner.name },
+        });
+
+        const loserEmail = playerEmails.find((email) => email !== winner.name);
+        const loserUser = loserEmail
+          ? await prisma.user.findUnique({
+              where: { email: loserEmail },
+            })
+          : null;
+
+        if (winnerUser && loserUser) {
+          const betAmount = game.betAmount || 5.0;
+
+          await prisma.$transaction([
+            prisma.user.update({
+              where: { email: winner.name },
+              data: { balance: winnerUser.balance + betAmount },
+            }),
+            prisma.user.update({
+              where: { email: loserEmail },
+              data: { balance: loserUser.balance - betAmount },
+            }),
+          ]);
+        }
+      } catch (error) {
+        console.error("Error updating balances:", error);
+      }
+    }
   }
-  private async handleAbondonGame(message: ClientMessage, user: User) {
-    const gameIdToAbandon = message.payload.gameId as string;
-    console.log(user, "userrrr", gameIdToAbandon, "gameId");
-    const gameToAbandon = this.games.find((x) => x.gameId === gameIdToAbandon);
-    console.log(gameToAbandon, "game");
-    if (gameToAbandon) {
-      const players = socketManager.getPlayerNamesIntheRoom(
-        gameToAbandon.gameId
-      );
-      const winner = players?.filter((x) => x?.trim() !== user.name)?.[0];
-      const loser = user.name;
-      console.log(winner, loser, "winn losser");
-      if (!winner || !loser) {
-        console.error("Could not determine winner/loser for abandoned game");
+
+  private async handleAbandonGame(
+    message: ClientMessage,
+    user: User
+  ): Promise<void> {
+    const gameId = message.payload.gameId;
+    const game = this.games.get(gameId);
+
+    if (!game) {
+      this.sendErrorToUser(user, "Game not found");
+      return;
+    }
+
+    const playerEmails = socketManager
+      .getPlayerNamesIntheRoom(gameId)
+      .map((email) => email.trim());
+
+    const otherPlayerEmail = playerEmails.find((email) => email !== user.name);
+    if (otherPlayerEmail) {
+      const otherPlayer = this.users.find((u) => u.name === otherPlayerEmail);
+
+      if (otherPlayer) {
+        otherPlayer.socket.send(
+          JSON.stringify({
+            gameId,
+            event: EventTypes.GAME_WINNER,
+            winner: otherPlayerEmail,
+            reason: "Opponent abandoned the game",
+          })
+        );
+
+        user.socket.send(
+          JSON.stringify({
+            gameId,
+            event: EventTypes.GAME_LOSSER,
+            losser: user.name,
+            reason: "You abandoned the game",
+          })
+        );
+        const getGameStatePosition = await redisService.get(`game:${gameId}`);
+        if (!getGameStatePosition) {
+          return;
+        }
+        const gameState = {
+          ...JSON.parse(getGameStatePosition),
+          gameId,
+          status: "COMPLETED",
+          winner: otherPlayerEmail,
+        };
+
+        await redisService.saveGameState(gameId, gameState);
+        await redisService.markGameCompleted(gameId);
+
+        await redisService.syncWithDatabase();
+      }
+    }
+
+    this.removeGame(gameId);
+  }
+
+  private async handleGameResume(
+    message: ClientMessage,
+    user: User
+  ): Promise<void> {
+    const gameId = message.payload.gameId;
+
+    let game = this.games.get(gameId);
+
+    if (!game) {
+      const loadedGame = await Game.loadFromRedis(gameId);
+
+      if (loadedGame) {
+        game = loadedGame;
+        this.games.set(gameId, game);
+      } else {
+        this.sendErrorToUser(user, "Game not found or expired");
         return;
       }
-
-      socketManager.broadcast(
-        gameToAbandon.gameId,
-        JSON.stringify({
-          event: EventTypes.ABANDON_GAME,
-          gameId: gameToAbandon.gameId,
-          gameAbandoned: `Game has been abandoned by ${user.name}`,
-        })
-      );
-      socketManager.broadcast(
-        gameToAbandon.gameId,
-        JSON.stringify({
-          event: EventTypes.GAME_WINNER,
-          winner: winner,
-        })
-      );
-      const getCurrentGameIdState = await redisService.get(
-        `game:${gameToAbandon.gameId}`
-      );
-      if(getCurrentGameIdState){
-        const updateGameState = {
-          ...JSON.parse(getCurrentGameIdState),
-          status:"COMPLETED",
-          state: {
-            player1: Object.keys(gameToAbandon.getPlayers())[0],
-            player2: Object.keys(gameToAbandon.getPlayers())[1],
-            player1Position: gameToAbandon.getPlayerPosition(
-              Object.keys(gameToAbandon.getPlayers())[0]
-            ),
-            player2Position: gameToAbandon.getPlayerPosition(
-              Object.keys(gameToAbandon.getPlayers())[1]
-            ),
-          },
-          winner: winner,
-
-        }
-        await redisService.set(`game:${gameToAbandon.gameId}`,JSON.stringify(updateGameState))
-        await redisService.getClient().srem("active_games", gameToAbandon.gameId);
-      }
-      await prisma.game.update({
-        where: {
-          gameId: gameToAbandon.gameId,
-        },
-        data: {
-          status: "COMPLETED",
-          state: {
-            player1: Object.keys(gameToAbandon.getPlayers())[0],
-            player2: Object.keys(gameToAbandon.getPlayers())[1],
-            player1Position: gameToAbandon.getPlayerPosition(
-              Object.keys(gameToAbandon.getPlayers())[0]
-            ),
-            player2Position: gameToAbandon.getPlayerPosition(
-              Object.keys(gameToAbandon.getPlayers())[1]
-            ),
-          },
-          winner: winner,
-          GameHistory: {
-            createMany: {
-              data: [
-                {
-                  userId: loser,
-                  moneyChange: -100,
-                  result: "LOSE",
-                },
-                {
-                  userId: winner,
-                  moneyChange: 100,
-                  result: "WIN",
-                },
-              ],
-            },
-          },
-        },
-      });
-      await prisma.user.update({
-        where: { email: loser },
-        data: {
-          balance: { decrement: 100 },
-        },
-      });
-      await prisma.user.update({
-        where: { email: winner },
-        data: {
-          balance: { increment: 100 },
-        },
-      });
-
-      socketManager.removeUser(user.id);
-      this.removeGame(gameIdToAbandon);
     }
-  }
-  private async handleGameResume(message: ClientMessage, user: User) {
-    const { resumedGameId } = message.payload;
-    const existingGame = this.games.find((x) => x.gameId === resumedGameId);
-    if (!existingGame) {
-      user.socket.send(
-        JSON.stringify({
-          event: EventTypes.ERROR,
-          error: "Game not found",
-        })
-      );
-      return;
-    }
-    const isPlayerInGame = Object.keys(existingGame.getPlayers()).includes(
-      user.name
-    );
-    if (!isPlayerInGame) {
-      user.socket.send(
-        JSON.stringify({
-          type: EventTypes.ERROR,
-          error: "Not authorized to resume this game",
-        })
-      );
-      return;
-    }
-    socketManager.updateUserSocket(resumedGameId, user.name, user.socket);
 
-    const currentState = Object.entries(existingGame.getPlayers()).map(
-      ([key, value]) => ({
-        username: key,
-        position: value,
-      })
-    );
-    let reconnectStatus: { name: string; isActive: string }[] = [];
-    socketManager
-      .getUserSocketByroomId(existingGame.gameId)
-      ?.map((currentUser) => {
-        reconnectStatus.push(
-          currentUser.socket.readyState === WebSocket.OPEN
-            ? {
-                name: currentUser.name
-                  .split("@")[0]
-                  .split(" ")
-                  .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-                  .join(" "),
-                isActive: "true",
-              }
-            : {
-                name: currentUser.name
-                  .split("@")[0]
-                  .split(" ")
-                  .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-                  .join(" "),
-                isActive: "false",
-              }
-        );
-      });
+    socketManager.addUser(gameId, user);
+
     user.socket.send(
       JSON.stringify({
-        event: EventTypes.GAME_STATE_RESTORED,
-        payload: {
-          resumedGameId,
-          playerPositions: currentState,
-          usersStatus: socketManager
-            .getUserSocketByroomId(existingGame.gameId)
-            ?.map((currentUser) => {
-              currentUser.socket.send(
-                JSON.stringify({
-                  event: EventTypes.USER_STATUS,
-                  payload: reconnectStatus,
-                })
-              );
-            }),
-        },
+        event: EventTypes.GAME_RESUME,
+        gameId,
+        state: game.getPlayers(),
+        currentTurn: game.getCurrentTurn(),
       })
     );
+
+    const status = this.getCurrentActiveUsersIntheGame(gameId);
     socketManager.broadcast(
-      resumedGameId,
+      gameId,
       JSON.stringify({
-        event: EventTypes.PLAYER_RECONNECTED,
-        payload: {
-          player: user.name,
-          currentTurn: existingGame.getCurrentTurn(),
-        },
+        event: EventTypes.USER_STATUS,
+        payload: status,
       })
     );
+  }
+
+  public getCurrentActiveUsersIntheGame(
+    gameId: string
+  ): { name: string; isActive: string }[] {
+    const users = socketManager.getUserSocketByroomId(gameId) || [];
+
+    return users.map((user) => ({
+      name: user.name,
+      isActive:
+        user.socket.readyState === WebSocket.OPEN ? "active" : "inactive",
+    }));
   }
 }

@@ -9,24 +9,29 @@ import { useTransitionRouter } from 'next-view-transitions';
 import { useWebSocket } from '@/hooks/use-socket-hook';
 import { toast } from 'sonner';
 
+type GameState = 'IDLE' | 'WAITING' | 'STARTING';
+
 const LobbyPage = () => {
-  const [playnow, setPlayNow] = useState<boolean | null>(true);
+  const [gameState, setGameState] = useState<GameState>('IDLE');
   const { sendMessage, connected, payload } = useWebSocket();
   const [seconds, setSeconds] = useState(5);
   const router = useTransitionRouter();
-
+  console.log(payload,'payload')
   const handleCreateGame = () => {
     if (connected) {
-      setPlayNow(false);
+      setGameState('WAITING');
       sendMessage({ event: EventTypes.INIT_GAME });
     } else {
       toast.error('Not connected to websocket. Try refreshing the page');
     }
   };
-
+  const handleCancel = () => {
+    setGameState('IDLE');
+    sendMessage({event:EventTypes.CANCELLED_GAME})
+  };
   useEffect(() => {
     if (payload && payload.event === EventTypes.GAME_STARTED) {
-      setPlayNow(null);
+      setGameState('STARTING');
       let timer: any;
       if (seconds > 0) {
         timer = setTimeout(() => {
@@ -35,7 +40,6 @@ const LobbyPage = () => {
         return () => clearTimeout(timer);
       } else {
         router.push(`/game/${payload.payload}`);
-        return () => clearTimeout(timer);
       }
     }
   }, [payload, router, seconds]);
@@ -74,7 +78,7 @@ const LobbyPage = () => {
                 </div>
 
                 <div className="space-y-6">
-                  {playnow === true && (
+                  {gameState === 'IDLE' && (
                     <Button
                       className="bg-black hover:bg-gray-800 text-white text-xl px-8 py-8 w-full"
                       onClick={handleCreateGame}
@@ -84,7 +88,7 @@ const LobbyPage = () => {
                     </Button>
                   )}
 
-                  {playnow === false && (
+                  {gameState === 'WAITING' && (
                     <div className="space-y-4">
                       <div className="flex items-center justify-center space-x-3 bg-gray-50 p-6 rounded-lg border-2 border-black">
                         <Loader2 className="h-6 w-6 animate-spin" />
@@ -93,14 +97,14 @@ const LobbyPage = () => {
                       <Button
                         variant="destructive"
                         className="bg-black hover:bg-gray-800 w-full py-6"
-                        onClick={() => setPlayNow(true)}
+                        onClick={handleCancel}
                       >
                         Cancel
                       </Button>
                     </div>
                   )}
 
-                  {payload && payload.event === EventTypes.GAME_STARTED && (
+                  {gameState === 'STARTING' && (
                     <div className="space-y-4">
                       <div className="bg-gray-50 p-6 rounded-lg border-2 border-black text-center">
                         <h2 className="text-2xl font-semibold">

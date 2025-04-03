@@ -1,195 +1,241 @@
 import { getRandomSnakesAndLadders } from "../utils/constants";
 import { createBoard, movePlayer } from "./utils";
-import {randomUUID} from 'crypto'
+import { randomUUID } from 'crypto';
+import redisService from "../services/redis-service";
+
+interface PlayerState {
+    position: number;
+    email: string;
+}
+
+interface GameState {
+    gameId: string;
+    players: Record<string, PlayerState>;
+    board: number[];
+    currentTurn: string;
+    status: 'WAITING' | 'IN_PROGRESS' | 'COMPLETED';
+    boardIndex: number;
+    winner: string | null;
+    betAmount: number;
+    state: Record<string, any>;
+    currentPlayerIndex: number;
+}
 
 class Game {
-    private board: number[];
-    private players: { [key: string]: number };
-    public gameId:string;
-    private currentTurn: number;
-    private gameIdIndex:number;
-
-    constructor() {
-        const { board,index } = getRandomSnakesAndLadders();
-        this.board = createBoard(board);
-        this.players = {};
-        this.gameId = randomUUID();
-        this.currentTurn = 0;
-        this.gameIdIndex = index
-
-    }
-
-    addPlayer(playerId: string,position?:number) {
-        if (position) {
-            if (!(playerId in this.players)) {
-                this.players[playerId] = position;
-            }
-        }
-        else if (!this.players[playerId]) {
-            this.players[playerId] = 0;
-        }
-        console.log(`Player added: ${playerId}, Position: ${this.players[playerId]} ${JSON.stringify(this.players)}`);
-
-    }
-    setJoinedUserGameId(gameId:string){
-        this.gameId = gameId
-    }
-    getBoardIndex(){
-        return this.gameIdIndex
-    }
-    rollDice(playerId: string): {currentPosition:number,diceResults:number,nextPosition:number,nextPlayerTurn:number} | number {
-        if(playerId !== this.getCurrentTurn()){
-            return -1
-        }
-        const nextPos = movePlayer(this.players[playerId],this.board)
-        this.players[playerId] = 0
-        this.players[playerId] = nextPos.newPosition
-        const nextPlayer = this.nextTurn()
-        console.log(`Player ${playerId} moved to position ${nextPos.newPosition}. Next turn: ${nextPlayer}`);
-        return { currentPosition:nextPos.currentPosition,diceResults: nextPos.diceRoll,nextPosition: nextPos.newPosition,nextPlayerTurn:nextPlayer }
-
-    }
-    getPlayerPosition(playerId: string): number {
-        console.log(`this.players[playerId]: ${JSON.stringify(this.players)}`);
-        return this.players[playerId];
-    }
-
-    isGameOver(playerId: string): boolean {
-        return this.players[playerId] === 100;
-    }
-    getPlayers(): { [key: string]: number } {
-        return this.players;
-    }
-    nextTurn(){
-        return this.currentTurn = (this.currentTurn + 1) % 2
-    }
-    getCurrentTurn():string{
-        return Object.keys(this.players)[this.currentTurn]
-    }
-    getUsernameAndPlayerTurnIndex(){
-        const currPlayerTurnIndex:any = []
-        let i=0;
-        for(const key in this.players){
-            currPlayerTurnIndex.push({username:key,turnIndex:i})
-            i = i+1
-        }
-        return currPlayerTurnIndex
+    private _gameId: string;
+    private _boardIndex: number;
+    private _board: number[];
+    private _players: Record<string, PlayerState>;
+    private _currentPlayerIndex: number = 0;
+    private _status: 'WAITING' | 'IN_PROGRESS' | 'COMPLETED' = 'WAITING';
+    private _winner: string | null = null;
+    private _betAmount: number = 0.0;
+    
+    constructor(existingGameId?: string) {
+        this._gameId = existingGameId || randomUUID();
+        const { board, index } = getRandomSnakesAndLadders();
+        this._board = createBoard(board);
+        this._boardIndex = index;
+        this._players = {};
+        
+        this.initializeFromRedis();
     }
     
+    private async initializeFromRedis(): Promise<void> {
+        try {
+            if (await redisService.exists(`game:${this._gameId}`)) {
+                const gameState = await redisService.getGameState(this._gameId);
+                if (gameState) {
+                    this._players = gameState.players || {};
+                    this._boardIndex = gameState.boardIndex || this._boardIndex;
+                    this._status = gameState.status || 'WAITING';
+                    this._winner = gameState.winner || null;
+                    this._betAmount = gameState.betAmount || 0.0;
+                    this._currentPlayerIndex = gameState.currentPlayerIndex || 0;
+                    
+                    if (gameState.board && gameState.board.length > 0) {
+                        this._board = gameState.board;
+                    }
+                }
+            } else {
+                await this.saveStateToRedis();
+            }
+        } catch (error) {
+            console.error('Error initializing game from Redis:', error);
+        }
+    }
+    
+    private async saveStateToRedis(): Promise<void> {
+        try {
+            const gameState: GameState = {
+                gameId: this._gameId,
+                players: this._players,
+                board: this._board,
+                currentTurn: this.getCurrentTurn(),
+                status: this._status,
+                boardIndex: this._boardIndex,
+                winner: this._winner,
+                betAmount: this._betAmount,
+                state: this.getGameState(),
+                currentPlayerIndex: this._currentPlayerIndex
+            };
+            
+            await redisService.saveGameState(this._gameId, gameState);
+        } catch (error) {
+            console.error('Error saving game state to Redis:', error);
+        }
+    }
+    
+    private getGameState(): Record<string, any> {
+        const playerPositions: Record<string, number> = {};
+        
+        for (const [email, player] of Object.entries(this._players)) {
+            playerPositions[email] = player.position;
+        }
+        
+        return {
+            playerPositions,
+            boardIndex: this._boardIndex,
+            currentPlayerIndex: this._currentPlayerIndex
+        };
+    }
+
+    public get gameId(): string {
+        return this._gameId;
+    }
+    
+    public get status(): 'WAITING' | 'IN_PROGRESS' | 'COMPLETED' {
+        return this._status;
+    }
+    
+    public set status(value: 'WAITING' | 'IN_PROGRESS' | 'COMPLETED') {
+        this._status = value;
+        this.saveStateToRedis();
+    }
+    
+    public get betAmount(): number {
+        return this._betAmount;
+    }
+    
+    public set betAmount(value: number) {
+        this._betAmount = value;
+        this.saveStateToRedis();
+    }
+    
+    public getBoardIndex(): number {
+        return this._boardIndex;
+    }
+
+    public async addPlayer(email: string, position: number = 0): Promise<void> {
+        if (Object.keys(this._players).length >= 2) {
+            throw new Error('Game already has maximum players');
+        }
+        
+        if (!this._players[email]) {
+            this._players[email] = {
+                position,
+                email
+            };
+            
+            if (Object.keys(this._players).length === 2) {
+                this._status = 'IN_PROGRESS';
+            }
+            
+            await this.saveStateToRedis();
+        }
+    }
+
+    public async rollDice(email: string): Promise<{ 
+        currentPosition: number,
+        diceResults: number,
+        nextPosition: number,
+        nextPlayerTurn: number
+    } | null> {
+        if (email !== this.getCurrentTurn()) {
+            return null;
+        }
+        
+        const player = this._players[email];
+        if (!player) {
+            return null;
+        }
+        
+        const nextPos = movePlayer(player.position, this._board);
+        player.position = nextPos.newPosition;
+        
+        // Check if this move results in a win
+        if (player.position === 100) {
+            this._winner = email;
+            this._status = 'COMPLETED';
+            await redisService.markGameCompleted(this._gameId);
+        }
+        
+        const playerNextTurn = this.nextTurn();
+        const nextPlayerEmail = this.getCurrentTurn();
+        
+        await this.saveStateToRedis();
+        
+        return {
+            currentPosition: nextPos.currentPosition,
+            diceResults: nextPos.diceRoll,
+            nextPosition: nextPos.newPosition,
+            nextPlayerTurn: playerNextTurn
+        };
+    }
+
+    public getPlayerPosition(email: string): number {
+        return this._players[email]?.position || 0;
+    }
+
+    public isGameOver(): boolean {
+        return this._status === 'COMPLETED';
+    }
+
+    public getPlayers(): Record<string, number> {
+        const result: Record<string, number> = {};
+        
+        for (const [email, player] of Object.entries(this._players)) {
+            result[email] = player.position;
+        }
+        
+        return result;
+    }
+
+    private nextTurn(): number {
+        this._currentPlayerIndex = (this._currentPlayerIndex + 1) % Object.keys(this._players).length;
+        return this._currentPlayerIndex;
+    }
+
+    public getCurrentTurn(): string {
+        const emails = Object.keys(this._players);
+        if (emails.length === 0) return '';
+        return emails[this._currentPlayerIndex];
+    }
+
+    public getUsernameAndPlayerTurnIndex(): [Array<{ username: string, turnIndex: number }>, number] {
+        const result = Object.entries(this._players).map(([email, _], index) => ({
+            username: email,
+            turnIndex: index
+        }));
+        
+        return [result, this._currentPlayerIndex];
+    }
+    
+    public get winner(): string | null {
+        return this._winner;
+    }
+    
+    public static async loadFromRedis(gameId: string): Promise<Game | null> {
+        try {
+            if (await redisService.exists(`game:${gameId}`)) {
+                return new Game(gameId);
+            }
+            return null;
+        } catch (error) {
+            console.error('Error loading game from Redis:', error);
+            return null;
+        }
+    }
 }
 
 export default Game;
-
-
-// import { createBoard, movePlayer } from "./utils";
-// import { randomUUID } from 'crypto';
-
-// interface Player {
-//     position: number;
-//     username: string;
-//     turnIndex: number;
-// }
-
-// interface DiceRollResult {
-//     currentPosition: number;
-//     diceResults: number;
-//     nextPosition: number;
-//     nextPlayerTurn: number;
-// }
-
-// class Game {
-//     private readonly board: number[];
-//     private players: Map<string, Player>;
-//     public readonly gameId: string;
-//     private currentTurn: number;
-//     private static readonly WINNING_POSITION = 100;
-//     private static readonly MAX_PLAYERS = 2;
-
-//     constructor() {
-//         this.board = createBoard();
-//         this.players = new Map();
-//         this.gameId = randomUUID();
-//         this.currentTurn = 0;
-//     }
-
-//     addPlayer(playerId: string, position: number = 0): void {
-//         if (this.players.size >= Game.MAX_PLAYERS) {
-//             throw new Error('Maximum players reached');
-//         }
-
-//         if (!this.players.has(playerId)) {
-//             this.players.set(playerId, {
-//                 position,
-//                 username: playerId,
-//                 turnIndex: this.players.size
-//             });
-//         }
-
-//         console.log(`Player added: ${playerId}, Position: ${position}`, 
-//             Array.from(this.players.entries()));
-//     }
-
-//     setJoinedUserGameId(gameId: string): void {
-//         // Consider making this private or removing if gameId should be immutable
-//         this.gameId = gameId;
-//     }
-
-//     rollDice(playerId: string): DiceRollResult | -1 {
-//         if (playerId !== this.getCurrentTurn()) {
-//             return -1;
-//         }
-
-//         const player = this.players.get(playerId);
-//         if (!player) {
-//             throw new Error('Player not found');
-//         }
-
-//         const nextPos = movePlayer(player.position, this.board);
-//         player.position = nextPos.newPosition;
-//         const nextPlayer = this.nextTurn();
-
-//         console.log(`Player ${playerId} moved to position ${nextPos.newPosition}. Next turn: ${nextPlayer}`);
-        
-//         return {
-//             currentPosition: nextPos.currentPosition,
-//             diceResults: nextPos.diceRoll,
-//             nextPosition: nextPos.newPosition,
-//             nextPlayerTurn: nextPlayer
-//         };
-//     }
-
-//     getPlayerPosition(playerId: string): number {
-//         const player = this.players.get(playerId);
-//         if (!player) {
-//             throw new Error('Player not found');
-//         }
-//         return player.position;
-//     }
-
-//     isGameOver(playerId: string): boolean {
-//         const player = this.players.get(playerId);
-//         return player?.position === Game.WINNING_POSITION;
-//     }
-
-//     getPlayers(): Map<string, Player> {
-//         return new Map(this.players);
-//     }
-
-//     private nextTurn(): number {
-//         this.currentTurn = (this.currentTurn + 1) % Game.MAX_PLAYERS;
-//         return this.currentTurn;
-//     }
-
-//     getCurrentTurn(): string {
-//         return Array.from(this.players.keys())[this.currentTurn];
-//     }
-
-//     getUsernameAndPlayerTurnIndex(): Array<{ username: string; turnIndex: number }> {
-//         return Array.from(this.players.values()).map(player => ({
-//             username: player.username,
-//             turnIndex: player.turnIndex
-//         }));
-//     }
-// }
-
-// export default Game;

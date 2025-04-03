@@ -7,6 +7,7 @@ const RollDice = ({ onRoll,diceColour}: { onRoll: () => void,diceColour:string }
   const [isRolling, setIsRolling] = useState(false);
   const [currentUser,setCurrentUser] = useState('')
   const {rolledDiceDetails} = useWebSocketStore()
+  console.log(diceColour,rolledDiceDetails,currentUser,currentDiceColour,'rolldice')
   const handleClick = () => {
     if (isRolling) return;
 

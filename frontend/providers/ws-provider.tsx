@@ -31,7 +31,7 @@ export function WebSocketProvider({ backendUrl,children }: { backendUrl:string,c
     }
     ws.current = new WebSocket(`${backendUrl}?token=${token}`);
     
-    ws.current.onopen = function (this,event) {
+    ws.current.onopen = () => {
       setConnected(true);
       toast.success('Successfully connected to game server');
     };
@@ -57,7 +57,7 @@ export function WebSocketProvider({ backendUrl,children }: { backendUrl:string,c
       case EventTypes.GAME_STARTED:
         toast.success("Game Started");
         setGamePlayers(message.gameStarted);
-        setPlayerTurnIndex(message.nextPlayerTurnIndex.turnIndex)
+        setPlayerTurnIndex(message.nextPlayerTurnIndex)
         sessionStorage.setItem('gameBoardIndex',message.gameBoardIndex)
         setPayload({
           event: message.event,
@@ -111,12 +111,12 @@ export function WebSocketProvider({ backendUrl,children }: { backendUrl:string,c
         setboardState(message.payload?.playerPositions);
         break
       case EventTypes.USER_STATUS:
-        setUsersStatus(null)
+        console.log(message.payload,'user_status')
         setUsersStatus(message.payload)
         break;
       case EventTypes.ERROR:
-        if(message?.error){
-          toast.error(message?.error)
+        if(message){
+          toast.error(message.message)
         }
         if (message.payload?.redirect) {
           await logoutRouteAction();
